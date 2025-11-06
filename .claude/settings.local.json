@@ -17,7 +17,11 @@
       "Bash(source .venv/bin/activate)",
       "Bash(uv pip install:*)",
       "Bash(pytest:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(if [ -d \"/workspace/specs/002-passkey-login/checklists\" ])",
+      "Bash(then ls /workspace/specs/002-passkey-login/checklists/*.md)",
+      "Bash(python3:*)",
+      "Bash(uv --version:*)"
     ],
     "deny": [],
     "ask": []

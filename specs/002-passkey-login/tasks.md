@@ -28,15 +28,15 @@
 
 ### セットアップタスク
 
-- [ ] T001 setup.pyでPloneパッケージ構造を作成（パッケージ名: c2.pas.aal2、依存関係: Plone>=5.2、webauthn==2.7.0）
-- [ ] T002 [P] src/c2/pas/aal2/__init__.py を作成（ネームスペースパッケージ宣言）
-- [ ] T003 [P] src/c2/pas/aal2/browser/__init__.py を作成
-- [ ] T004 [P] src/c2/pas/aal2/utils/__init__.py を作成
-- [ ] T005 [P] src/c2/pas/aal2/profiles/default/ ディレクトリを作成
-- [ ] T006 tests/ディレクトリを作成し、テスト用の__init__.pyを追加
-- [ ] T007 [P] docs/ディレクトリを作成し、README.mdを追加
-- [ ] T008 [P] .gitignoreを作成（Python、Plone、IDEの標準的な無視パターン）
-- [ ] T009 必要な依存関係をインストール（pip install -e .）して、パッケージ構造を検証
+- [X] T001 setup.pyでPloneパッケージ構造を作成（パッケージ名: c2.pas.aal2、依存関係: Plone>=5.2、webauthn==2.7.0）
+- [X] T002 [P] src/c2/pas/aal2/__init__.py を作成（ネームスペースパッケージ宣言）
+- [X] T003 [P] src/c2/pas/aal2/browser/__init__.py を作成
+- [X] T004 [P] src/c2/pas/aal2/utils/__init__.py を作成
+- [X] T005 [P] src/c2/pas/aal2/profiles/default/ ディレクトリを作成
+- [X] T006 tests/ディレクトリを作成し、テスト用の__init__.pyを追加
+- [X] T007 [P] docs/ディレクトリを作成し、README.mdを追加
+- [X] T008 [P] .gitignoreを作成（Python、Plone、IDEの標準的な無視パターン）
+- [X] T009 必要な依存関係をインストール（pip install -e .）して、パッケージ構造を検証
 
 ---
 
@@ -48,13 +48,13 @@
 
 ### 基盤タスク
 
-- [ ] T010 src/c2/pas/aal2/credential.py にパスキー認証情報ストレージヘルパーを実装（get_user_passkeys、add_passkey、get_passkey、update_passkey_last_used、delete_passkey、count_passkeys関数）
-- [ ] T011 src/c2/pas/aal2/utils/storage.py にZODBアノテーションユーティリティを実装（IAnnotationsヘルパー、PersistentDict操作）
-- [ ] T012 [P] src/c2/pas/aal2/utils/webauthn.py にWebAuthnラッパー関数を実装（create_registration_options、verify_registration_response、create_authentication_options、verify_authentication_response）
-- [ ] T013 src/c2/pas/aal2/plugin.py にPASプラグインベースクラスを作成（BasePluginを継承、メタタイプ設定、プラグイン登録）
-- [ ] T014 src/c2/pas/aal2/browser/configure.zcml を作成（ブラウザビューの基本ZCML設定）
-- [ ] T015 src/c2/pas/aal2/profiles/default/metadata.xml を作成（GenericSetupプロファイルメタデータ）
-- [ ] T016 src/c2/pas/aal2/profiles/default/pas_plugins.xml を作成（PASプラグイン登録設定）
+- [X] T010 src/c2/pas/aal2/credential.py にパスキー認証情報ストレージヘルパーを実装（get_user_passkeys、add_passkey、get_passkey、update_passkey_last_used、delete_passkey、count_passkeys関数）
+- [X] T011 src/c2/pas/aal2/utils/storage.py にZODBアノテーションユーティリティを実装（IAnnotationsヘルパー、PersistentDict操作）
+- [X] T012 [P] src/c2/pas/aal2/utils/webauthn.py にWebAuthnラッパー関数を実装（create_registration_options、verify_registration_response、create_authentication_options、verify_authentication_response）
+- [X] T013 src/c2/pas/aal2/plugin.py にPASプラグインベースクラスを作成（BasePluginを継承、メタタイプ設定、プラグイン登録）
+- [X] T014 src/c2/pas/aal2/browser/configure.zcml を作成（ブラウザビューの基本ZCML設定）
+- [X] T015 src/c2/pas/aal2/profiles/default/metadata.xml を作成（GenericSetupプロファイルメタデータ）
+- [X] T016 src/c2/pas/aal2/profiles/default/pas_plugins.xml を作成（PASプラグイン登録設定）
 
 ---
 
@@ -75,28 +75,28 @@
 
 ### US1: モデルとサービス
 
-- [ ] T017 [US1] src/c2/pas/aal2/plugin.py にgenerateRegistrationOptionsメソッドを実装（現在のユーザー用の登録オプションを生成、チャレンジをセッションに保存、既存の認証情報を除外）
-- [ ] T018 [US1] src/c2/pas/aal2/plugin.py にverifyRegistrationResponseメソッドを実装（WebAuthn登録レスポンスを検証、認証情報をZODBアノテーションに保存、監査ログイベントを作成）
+- [X] T017 [US1] src/c2/pas/aal2/plugin.py にgenerateRegistrationOptionsメソッドを実装（現在のユーザー用の登録オプションを生成、チャレンジをセッションに保存、既存の認証情報を除外）
+- [X] T018 [US1] src/c2/pas/aal2/plugin.py にverifyRegistrationResponseメソッドを実装（WebAuthn登録レスポンスを検証、認証情報をZODBアノテーションに保存、監査ログイベントを作成）
 
 ### US1: APIエンドポイント
 
-- [ ] T019 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterOptionsViewクラスを作成（認証が必要、generateRegistrationOptionsを呼び出し、JSON形式でオプションを返す）
-- [ ] T020 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterVerifyViewクラスを作成（認証が必要、WebAuthn登録レスポンスを検証、成功/エラーレスポンスを返す）
-- [ ] T021 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-optionsビューを登録（PasskeyRegisterOptionsViewをマップ、zope2.View権限）
-- [ ] T022 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-verifyビューを登録（PasskeyRegisterVerifyViewをマップ、zope2.View権限）
+- [X] T019 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterOptionsViewクラスを作成（認証が必要、generateRegistrationOptionsを呼び出し、JSON形式でオプションを返す）
+- [X] T020 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterVerifyViewクラスを作成（認証が必要、WebAuthn登録レスポンスを検証、成功/エラーレスポンスを返す）
+- [X] T021 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-optionsビューを登録（PasskeyRegisterOptionsViewをマップ、zope2.View権限）
+- [X] T022 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-verifyビューを登録（PasskeyRegisterVerifyViewをマップ、zope2.View権限）
 
 ### US1: UIテンプレート
 
-- [ ] T023 [US1] src/c2/pas/aal2/browser/templates/register_passkey.pt を作成（パスキー登録フォーム、デバイス名入力、WebAuthn JSインテグレーション、エラーハンドリング）
-- [ ] T024 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterFormViewクラスを作成（register_passkey.ptテンプレートを表示、ユーザープロフィール/セキュリティ設定からアクセス可能）
-- [ ] T025 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-formビューを登録（PasskeyRegisterFormViewをマップ、zope2.View権限）
-- [ ] T026 [US1] src/c2/pas/aal2/browser/templates/register_passkey.pt にJavaScriptを追加（WebAuthn APIを呼び出し、base64urlエンコーディング、オプションとレスポンスのエンドポイントと通信）
+- [X] T023 [US1] src/c2/pas/aal2/browser/templates/register_passkey.pt を作成（パスキー登録フォーム、デバイス名入力、WebAuthn JSインテグレーション、エラーハンドリング）
+- [X] T024 [US1] src/c2/pas/aal2/browser/views.py にPasskeyRegisterFormViewクラスを作成（register_passkey.ptテンプレートを表示、ユーザープロフィール/セキュリティ設定からアクセス可能）
+- [X] T025 [US1] src/c2/pas/aal2/browser/configure.zcml に@@passkey-register-formビューを登録（PasskeyRegisterFormViewをマップ、zope2.View権限）
+- [X] T026 [US1] src/c2/pas/aal2/browser/templates/register_passkey.pt にJavaScriptを追加（WebAuthn APIを呼び出し、base64urlエンコーディング、オプションとレスポンスのエンドポイントと通信）
 
 ### US1: 統合
 
-- [ ] T027 [US1] Ploneユーザープロフィールにパスキー登録リンクを追加（セキュリティ設定タブまたは個人設定パネルに統合）
-- [ ] T028 [US1] エラーハンドリングを実装（チャレンジ期限切れ、重複認証情報、ユーザーキャンセル、ブラウザ非サポートのケース）
-- [ ] T029 [US1] 監査ログを実装（registration_start、registration_success、registration_failureイベントをPlone監査ログに記録）
+- [X] T027 [US1] Ploneユーザープロフィールにパスキー登録リンクを追加（セキュリティ設定タブまたは個人設定パネルに統合）
+- [X] T028 [US1] エラーハンドリングを実装（チャレンジ期限切れ、重複認証情報、ユーザーキャンセル、ブラウザ非サポートのケース）
+- [X] T029 [US1] 監査ログを実装（registration_start、registration_success、registration_failureイベントをPlone監査ログに記録）
 
 ---
 
@@ -119,30 +119,30 @@
 
 ### US2: PAS認証プラグイン
 
-- [ ] T030 [US2] src/c2/pas/aal2/plugin.py にIExtractionPluginインターフェースを実装（extractCredentialsメソッド：リクエストからWebAuthnアサーションを抽出、認証情報dictを返す）
-- [ ] T031 [US2] src/c2/pas/aal2/plugin.py にIAuthenticationPluginインターフェースを実装（authenticateCredentialsメソッド：py_webauthnを使用してアサーションを検証、(user_id, login)を返すまたはNone）
-- [ ] T032 [US2] src/c2/pas/aal2/plugin.py にgenerateAuthenticationOptionsメソッドを実装（ユーザー名用の認証オプションを生成、チャレンジをセッションに保存、allowCredentialsリストを返す）
-- [ ] T033 [US2] src/c2/pas/aal2/plugin.py にverifyAuthenticationResponseメソッドを実装（WebAuthnアサーションを検証、sign_countを更新、last_usedタイムスタンプを更新、リプレイ攻撃をチェック）
+- [X] T030 [US2] src/c2/pas/aal2/plugin.py にIExtractionPluginインターフェースを実装（extractCredentialsメソッド：リクエストからWebAuthnアサーションを抽出、認証情報dictを返す）
+- [X] T031 [US2] src/c2/pas/aal2/plugin.py にIAuthenticationPluginインターフェースを実装（authenticateCredentialsメソッド：py_webauthnを使用してアサーションを検証、(user_id, login)を返すまたはNone）
+- [X] T032 [US2] src/c2/pas/aal2/plugin.py にgenerateAuthenticationOptionsメソッドを実装（ユーザー名用の認証オプションを生成、チャレンジをセッションに保存、allowCredentialsリストを返す）
+- [X] T033 [US2] src/c2/pas/aal2/plugin.py にverifyAuthenticationResponseメソッドを実装（WebAuthnアサーションを検証、sign_countを更新、last_usedタイムスタンプを更新、リプレイ攻撃をチェック）
 
 ### US2: APIエンドポイント
 
-- [ ] T034 [US2] src/c2/pas/aal2/browser/views.py にPasskeyLoginOptionsViewクラスを作成（パブリック、generateAuthenticationOptionsを呼び出し、JSON形式でオプションを返す）
-- [ ] T035 [US2] src/c2/pas/aal2/browser/views.py にPasskeyLoginVerifyViewクラスを作成（パブリック、WebAuthnアサーションを検証、認証済みセッションを作成、リダイレクトURLを返す）
-- [ ] T036 [US2] src/c2/pas/aal2/browser/configure.zcml に@@passkey-login-optionsビューを登録（PasskeyLoginOptionsViewをマップ、パブリックアクセス）
-- [ ] T037 [US2] src/c2/pas/aal2/browser/configure.zcml に@@passkey-login-verifyビューを登録（PasskeyLoginVerifyViewをマップ、パブリックアクセス）
+- [X] T034 [US2] src/c2/pas/aal2/browser/views.py にPasskeyLoginOptionsViewクラスを作成（パブリック、generateAuthenticationOptionsを呼び出し、JSON形式でオプションを返す）
+- [X] T035 [US2] src/c2/pas/aal2/browser/views.py にPasskeyLoginVerifyViewクラスを作成（パブリック、WebAuthnアサーションを検証、認証済みセッションを作成、リダイレクトURLを返す）
+- [X] T036 [US2] src/c2/pas/aal2/browser/configure.zcml に@@passkey-login-optionsビューを登録（PasskeyLoginOptionsViewをマップ、パブリックアクセス）
+- [X] T037 [US2] src/c2/pas/aal2/browser/configure.zcml に@@passkey-login-verifyビューを登録（PasskeyLoginVerifyViewをマップ、パブリックアクセス）
 
 ### US2: UIテンプレート
 
-- [ ] T038 [US2] src/c2/pas/aal2/browser/templates/login_with_passkey.pt を作成（パスキーログインフォーム、ユーザー名入力（オプション）、WebAuthn JSインテグレーション、エラーハンドリング）
-- [ ] T039 [US2] src/c2/pas/aal2/browser/templates/login_with_passkey.pt にJavaScriptを追加（WebAuthn認証APIを呼び出し、オプションとレスポンスのエンドポイントと通信、ログイン成功時にリダイレクト）
-- [ ] T040 [US2] Ploneログインページを拡張（「パスキーでサインイン」ボタンを追加、従来のログインフォームとパスキーログインフォームを切り替え）
+- [X] T038 [US2] src/c2/pas/aal2/browser/templates/login_with_passkey.pt を作成（パスキーログインフォーム、ユーザー名入力（オプション）、WebAuthn JSインテグレーション、エラーハンドリング）
+- [X] T039 [US2] src/c2/pas/aal2/browser/templates/login_with_passkey.pt にJavaScriptを追加（WebAuthn認証APIを呼び出し、オプションとレスポンスのエンドポイントと通信、ログイン成功時にリダイレクト）
+- [X] T040 [US2] Ploneログインページを拡張（「パスキーでサインイン」ボタンを追加、従来のログインフォームとパスキーログインフォームを切り替え）
 
 ### US2: 統合
 
-- [ ] T041 [US2] PASプラグインをPlone acl_usersに登録（IExtractionPluginとIAuthenticationPluginを有効化、プラグインの優先順位を設定）
-- [ ] T042 [US2] セッション管理を実装（チャレンジの保存と検証、5分のTTL、チャレンジの期限切れハンドリング）
-- [ ] T043 [US2] エラーハンドリングを実装（無効な署名、認証情報が見つからない、リプレイ攻撃検出、ユーザーキャンセルのケース）
-- [ ] T044 [US2] 監査ログを実装（authentication_start、authentication_success、authentication_failureイベントをPlone監査ログに記録）
+- [X] T041 [US2] PASプラグインをPlone acl_usersに登録（IExtractionPluginとIAuthenticationPluginを有効化、プラグインの優先順位を設定）
+- [X] T042 [US2] セッション管理を実装（チャレンジの保存と検証、5分のTTL、チャレンジの期限切れハンドリング）
+- [X] T043 [US2] エラーハンドリングを実装（無効な署名、認証情報が見つからない、リプレイ攻撃検出、ユーザーキャンセルのケース）
+- [X] T044 [US2] 監査ログを実装（authentication_start、authentication_success、authentication_failureイベントをPlone監査ログに記録）
 
 ---
 
