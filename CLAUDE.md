@@ -9,8 +9,10 @@ Auto-generated from all feature plans. Last updated: 2025-11-06
 ## Project Structure
 
 ```text
-src/
-tests/
+src/               # ソースコードディレクトリ（標準的なsrcレイアウト）
+  c2/pas/aal2/     # 2ドット形式のPlone標準パッケージ構造
+tests/             # テストディレクトリ
+docs/              # ドキュメントディレクトリ
 ```
 
 ## Commands

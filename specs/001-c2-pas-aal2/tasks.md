@@ -15,24 +15,25 @@
 
 ## Path Conventions
 
-このプロジェクトは2ドット形式のPloneパッケージ構造を採用：
-- **パッケージコード**: `c2/pas/aal2/`
+このプロジェクトは標準的な`src/`レイアウトと2ドット形式のPloneパッケージ構造を採用：
+- **パッケージコード**: `src/c2/pas/aal2/`
 - **テスト**: `tests/`
 - **ドキュメント**: `docs/`
 - **設定ファイル**: ルートディレクトリ
+- **注意**: `setup.py`で`package_dir={'': 'src'}`を指定
 
 ## Phase 1: Setup（共有インフラストラクチャ）
 
 **Purpose**: プロジェクトの初期化と基本構造の作成
 
-- [ ] T001 Create root package directory `c2.pas.aal2/` per implementation plan
-- [ ] T002 [P] Create namespace package structure `c2/__init__.py` (empty for namespace)
-- [ ] T003 [P] Create namespace package structure `c2/pas/__init__.py` (empty for namespace)
-- [ ] T004 [P] Create main package `c2/pas/aal2/__init__.py` with package exports
-- [ ] T005 [P] Create test directory structure `tests/__init__.py`
-- [ ] T006 [P] Configure pytest with `pytest.ini` for test discovery and coverage settings
-- [ ] T007 [P] Create `.gitignore` for Python standard exclusions (__pycache__, *.pyc, dist/, *.egg-info/)
-- [ ] T008 [P] Create `tox.ini` for multi-environment testing configuration
+- [x] T001 Create source directory `src/` per implementation plan
+- [x] T002 [P] Create namespace package structure `src/c2/__init__.py` (namespace package declaration)
+- [x] T003 [P] Create namespace package structure `src/c2/pas/__init__.py` (namespace package declaration)
+- [x] T004 [P] Create main package `src/c2/pas/aal2/__init__.py` with package exports
+- [x] T005 [P] Create test directory structure `tests/__init__.py`
+- [x] T006 [P] Configure pytest with `pytest.ini` for test discovery and coverage settings
+- [x] T007 [P] Create `.gitignore` for Python standard exclusions (__pycache__, *.pyc, dist/, *.egg-info/)
+- [x] T008 [P] Create `tox.ini` for multi-environment testing configuration
 
 ---
 
@@ -42,10 +43,10 @@
 
 **⚠️ CRITICAL**: このフェーズが完了するまで、ユーザーストーリーの作業は開始できません
 
-- [ ] T009 Create `setup.py` with package metadata, dependencies (Plone 5.2+, Python 3.11+), and namespace_packages configuration
-- [ ] T010 [P] Create `MANIFEST.in` to include ZCML files, README, and non-Python files in package distribution
-- [ ] T011 [P] Create `LICENSE` file with GPLv2 text (Plone standard)
-- [ ] T012 [P] Create `CHANGES.rst` with initial version 0.1.0 entry (Plone standard format)
+- [X] T009 Create `setup.py` with package metadata, dependencies (Plone 5.2+, Python 3.11+), namespace_packages configuration, and package_dir={'': 'src'} for src/ layout
+- [X] T010 [P] Create `MANIFEST.in` to include ZCML files, README, and non-Python files in package distribution
+- [ ] T011 [P] Create `LICENSE` file with GPLv2 text (Plone standard) - SKIPPED (ユーザーが後で作成)
+- [X] T012 [P] Create `CHANGES.rst` with initial version 0.1.0 entry (Plone standard format)
 
 **Checkpoint**: 基盤の準備完了 - ユーザーストーリーの実装が並列で開始可能
 
@@ -61,17 +62,17 @@
 
 > **NOTE: これらのテストを最初に記述し、実装前にFAILすることを確認**
 
-- [ ] T013 [P] [US1] Create import test in `tests/test_import.py` - verify `import c2.pas.aal2` succeeds
-- [ ] T014 [P] [US1] Create plugin registration test in `tests/test_plugin_registration.py` - verify AAL2Plugin implements IAuthenticationPlugin and IExtractionPlugin
-- [ ] T015 [P] [US1] Create stub methods test in `tests/test_stub_methods.py` - verify authenticateCredentials() and extractCredentials() are callable and don't raise exceptions
+- [X] T013 [P] [US1] Create import test in `tests/test_import.py` - verify `import c2.pas.aal2` succeeds
+- [X] T014 [P] [US1] Create plugin registration test in `tests/test_plugin_registration.py` - verify AAL2Plugin implements IAuthenticationPlugin and IExtractionPlugin
+- [X] T015 [P] [US1] Create stub methods test in `tests/test_stub_methods.py` - verify authenticateCredentials() and extractCredentials() are callable and don't raise exceptions
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Create Zope interface definitions in `c2/pas/aal2/interfaces.py` - define IAAL2Plugin with get_aal_level() and require_aal2() method signatures
-- [ ] T017 [US1] Create AAL2Plugin stub class in `c2/pas/aal2/plugin.py` - implement IAuthenticationPlugin and IExtractionPlugin with stub methods (authenticateCredentials returns None, extractCredentials returns empty dict)
-- [ ] T018 [US1] Create ZCML configuration in `c2/pas/aal2/configure.zcml` - register AAL2Plugin as PAS plugin with proper namespace and i18n domain
-- [ ] T019 [US1] Update `c2/pas/aal2/__init__.py` to export AAL2Plugin class and IAAL2Plugin interface
-- [ ] T020 [US1] Verify plugin ID, title, and meta_type attributes are set correctly in AAL2Plugin class
+- [X] T016 [P] [US1] Create Zope interface definitions in `src/c2/pas/aal2/interfaces.py` - define IAAL2Plugin with get_aal_level() and require_aal2() method signatures
+- [X] T017 [US1] Create AAL2Plugin stub class in `src/c2/pas/aal2/plugin.py` - implement IAuthenticationPlugin and IExtractionPlugin with stub methods (authenticateCredentials returns None, extractCredentials returns empty dict)
+- [X] T018 [US1] Create ZCML configuration in `src/c2/pas/aal2/configure.zcml` - register AAL2Plugin as PAS plugin with proper namespace and i18n domain
+- [X] T019 [US1] Update `src/c2/pas/aal2/__init__.py` to export AAL2Plugin class and IAAL2Plugin interface
+- [X] T020 [US1] Verify plugin ID, title, and meta_type attributes are set correctly in AAL2Plugin class
 
 **Checkpoint**: User Story 1が完全に機能し、独立してテスト可能
 
@@ -89,11 +90,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [US2] Create pytest configuration in `tests/conftest.py` with common fixtures (if needed for future tests)
-- [ ] T022 [US2] Add test documentation in `tests/README.md` - explain test structure, how to run tests, how to add new tests
-- [ ] T023 [US2] Verify all 3 basic tests (import, plugin registration, stub methods) pass with `pytest tests/ -v`
-- [ ] T024 [US2] Add pytest-cov configuration to `pytest.ini` for coverage reporting
-- [ ] T025 [US2] Run coverage report with `pytest tests/ --cov=c2.pas.aal2 --cov-report=term-missing` and verify structure is testable
+- [X] T021 [P] [US2] Create pytest configuration in `tests/conftest.py` with common fixtures (if needed for future tests)
+- [X] T022 [US2] Add test documentation in `tests/README.md` - explain test structure, how to run tests, how to add new tests
+- [X] T023 [US2] Verify all 3 basic tests (import, plugin registration, stub methods) pass with `pytest tests/ -v`
+- [X] T024 [US2] Add pytest-cov configuration to `pytest.ini` for coverage reporting
+- [X] T025 [US2] Run coverage report with `pytest tests/ --cov=c2.pas.aal2 --cov-report=term-missing` and verify structure is testable
 
 **Checkpoint**: User Stories 1とUser Story 2が両方とも独立して動作
 
@@ -111,13 +112,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create comprehensive `README.md` in root - include package purpose, installation instructions (pip install -e .), basic structure explanation, import example, future implementation TODOs
-- [ ] T027 [P] [US3] Create implementation guide in `docs/implementation_guide.md` - document how to extend stub methods, add new PAS interfaces, implement AAL2 logic
-- [ ] T028 [P] [US3] Add package classifiers to `setup.py` - Python 3.11+, Plone 5.2+, Development Status :: 3 - Alpha, Framework :: Plone
-- [ ] T029 [US3] Verify `setup.py` install_requires includes correct Plone dependencies and extras_require defines [test] with pytest and pytest-cov
-- [ ] T030 [US3] Add inline documentation to `c2/pas/aal2/plugin.py` - docstrings for AAL2Plugin class and all stub methods explaining future implementation requirements
-- [ ] T031 [US3] Add inline documentation to `c2/pas/aal2/interfaces.py` - docstrings for IAAL2Plugin interface and method signatures
-- [ ] T032 [US3] Add comments to `c2/pas/aal2/configure.zcml` explaining ZCML registration and how to extend for GenericSetup profiles
+- [X] T026 [P] [US3] Create comprehensive `README.md` in root - include package purpose, installation instructions (pip install -e .), basic structure explanation (src/ layout), import example, future implementation TODOs
+- [X] T027 [P] [US3] Create implementation guide in `docs/implementation_guide.md` - document how to extend stub methods, add new PAS interfaces, implement AAL2 logic
+- [X] T028 [P] [US3] Add package classifiers to `setup.py` - Python 3.11+, Plone 5.2+, Development Status :: 3 - Alpha, Framework :: Plone
+- [X] T029 [US3] Verify `setup.py` install_requires includes correct Plone dependencies and extras_require defines [test] with pytest and pytest-cov
+- [X] T030 [US3] Add inline documentation to `src/c2/pas/aal2/plugin.py` - docstrings for AAL2Plugin class and all stub methods explaining future implementation requirements
+- [X] T031 [US3] Add inline documentation to `src/c2/pas/aal2/interfaces.py` - docstrings for IAAL2Plugin interface and method signatures
+- [X] T032 [US3] Add comments to `src/c2/pas/aal2/configure.zcml` explaining ZCML registration and how to extend for GenericSetup profiles
 
 **Checkpoint**: すべてのユーザーストーリーが独立して機能的
 
@@ -127,14 +128,14 @@
 
 **Purpose**: 複数のユーザーストーリーに影響する改善
 
-- [ ] T033 [P] Run full test suite with `pytest tests/ -v --cov=c2.pas.aal2 --cov-report=term-missing` and verify all tests pass
-- [ ] T034 [P] Verify package can be installed in development mode with `pip install -e .` without errors
-- [ ] T035 [P] Test package import `python -c "import c2.pas.aal2; print('Success')"` succeeds
-- [ ] T036 [P] Verify namespace package structure allows `import c2.pas.aal2` with correct module hierarchy
-- [ ] T037 Run quickstart.md validation - follow all setup steps and verify they work within 10 minutes
-- [ ] T038 [P] Code review for Python PEP 8 style compliance (can use black or autopep8 if desired)
-- [ ] T039 [P] Add edge case handling to setup.py - verify Python version check (>=3.11) and Plone version requirement (>=5.2)
-- [ ] T040 Final documentation review - ensure README.md installation steps match actual setup.py configuration
+- [X] T033 [P] Run full test suite with `pytest tests/ -v --cov=c2.pas.aal2 --cov-report=term-missing` and verify all tests pass
+- [X] T034 [P] Verify package can be installed in development mode with `pip install -e .` without errors
+- [X] T035 [P] Test package import `python -c "import c2.pas.aal2; print('Success')"` succeeds
+- [X] T036 [P] Verify namespace package structure allows `import c2.pas.aal2` with correct module hierarchy
+- [X] T037 Run quickstart.md validation - follow all setup steps and verify they work within 10 minutes
+- [X] T038 [P] Code review for Python PEP 8 style compliance (can use black or autopep8 if desired)
+- [X] T039 [P] Add edge case handling to setup.py - verify Python version check (>=3.11) and Plone version requirement (>=5.2)
+- [X] T040 Final documentation review - ensure README.md installation steps match actual setup.py configuration
 
 ---
 
@@ -181,7 +182,7 @@ Task: "Create plugin registration test in tests/test_plugin_registration.py"
 Task: "Create stub methods test in tests/test_stub_methods.py"
 
 # User Story 1の並列可能な実装タスクを同時に起動:
-Task: "Create Zope interface definitions in c2/pas/aal2/interfaces.py"
+Task: "Create Zope interface definitions in src/c2/pas/aal2/interfaces.py"
 ```
 
 ---

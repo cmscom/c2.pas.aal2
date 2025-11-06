@@ -58,14 +58,14 @@ specs/[###-feature]/
 ### Source Code (repository root)
 
 ```text
-c2.pas.aal2/                    # パッケージルートディレクトリ
-├── c2/                          # トップレベル名前空間
-│   └── pas/                     # 第2レベル名前空間
-│       └── aal2/                # 実際のパッケージコード
-│           ├── __init__.py      # パッケージ初期化
-│           ├── plugin.py        # PASプラグインスタブクラス
-│           ├── interfaces.py    # Zope インターフェース定義
-│           └── configure.zcml   # ZCML設定ファイル
+├── src/                         # ソースコードディレクトリ（標準的なsrcレイアウト）
+│   └── c2/                      # トップレベル名前空間
+│       └── pas/                 # 第2レベル名前空間
+│           └── aal2/            # 実際のパッケージコード
+│               ├── __init__.py  # パッケージ初期化
+│               ├── plugin.py    # PASプラグインスタブクラス
+│               ├── interfaces.py # Zope インターフェース定義
+│               └── configure.zcml # ZCML設定ファイル
 │
 ├── tests/                       # テストディレクトリ
 │   ├── __init__.py
@@ -77,7 +77,7 @@ c2.pas.aal2/                    # パッケージルートディレクトリ
 ├── docs/                        # ドキュメントディレクトリ（オプション）
 │   └── implementation_guide.md  # 将来の実装ガイドライン
 │
-├── setup.py                     # または pyproject.toml
+├── setup.py                     # セットアップスクリプト（package_dir={'': 'src'}指定）
 ├── MANIFEST.in                  # パッケージマニフェスト
 ├── README.md                    # パッケージドキュメント
 ├── LICENSE                      # ライセンスファイル（GPLv2またはMIT）
@@ -87,7 +87,7 @@ c2.pas.aal2/                    # パッケージルートディレクトリ
 └── CHANGES.rst                  # 変更履歴（Plone標準）
 ```
 
-**Structure Decision**: 2ドット形式のPlone標準パッケージ構造を採用。`c2/pas/aal2/`の階層構造により、Pythonの名前空間パッケージとして`import c2.pas.aal2`が可能になります。各レベルに`__init__.py`を配置し、適切なPython importパスを確保します。テストは独立した`tests/`ディレクトリに配置し、パッケージコードとの分離を維持します。
+**Structure Decision**: 標準的な`src/`レイアウトを採用し、2ドット形式のPlone標準パッケージ構造を`src/c2/pas/aal2/`に配置します。`setup.py`で`package_dir={'': 'src'}`を指定することで、Pythonの名前空間パッケージとして`import c2.pas.aal2`が可能になります。`src/`レイアウトは、パッケージコードとテストコードの分離を明確にし、インストール前の誤ったインポートを防ぎます。各レベルに`__init__.py`を配置し、適切なPython importパスを確保します。テストは独立した`tests/`ディレクトリに配置し、パッケージコードとの分離を維持します。
 
 ## Complexity Tracking
 

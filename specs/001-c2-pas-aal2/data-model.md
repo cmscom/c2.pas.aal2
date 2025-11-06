@@ -59,13 +59,14 @@
 
 **構造**:
 ```
-c2/                      # 名前空間パッケージ（__init__.py含む）
-└── pas/                 # 名前空間パッケージ（__init__.py含む）
-    └── aal2/            # 実際のパッケージコード
-        ├── __init__.py  # パッケージエクスポート
-        ├── plugin.py    # AAL2Pluginクラス
-        ├── interfaces.py  # IAAL2Pluginインターフェース
-        └── configure.zcml  # ZCML設定
+src/                     # ソースコードディレクトリ（標準的なsrcレイアウト）
+└── c2/                  # 名前空間パッケージ（__init__.py含む）
+    └── pas/             # 名前空間パッケージ（__init__.py含む）
+        └── aal2/        # 実際のパッケージコード
+            ├── __init__.py  # パッケージエクスポート
+            ├── plugin.py    # AAL2Pluginクラス
+            ├── interfaces.py  # IAAL2Pluginインターフェース
+            └── configure.zcml  # ZCML設定
 ```
 
 **関係性**:
