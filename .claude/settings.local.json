@@ -16,7 +16,8 @@
       "Bash(python:*)",
       "Bash(source .venv/bin/activate)",
       "Bash(uv pip install:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
