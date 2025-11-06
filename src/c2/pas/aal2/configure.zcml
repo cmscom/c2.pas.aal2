@@ -1,0 +1,42 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    i18n_domain="c2.pas.aal2">
+
+  <!--
+    ZCML Configuration for c2.pas.aal2 PAS Plugin
+
+    This configuration file registers the AAL2Plugin as a Plone PAS plugin.
+
+    Key components:
+    - Plugin class registration
+    - Interface declarations
+    - i18n domain setup for future internationalization
+
+    Future extensions:
+    - GenericSetup profiles for installation/uninstallation
+    - Browser views for plugin management UI
+    - Event subscribers for authentication events
+    - Adapters for content-level AAL2 policies
+  -->
+
+  <!-- Include dependent configurations if needed -->
+  <include package="Products.PluggableAuthService" />
+
+  <!--
+    Register the AAL2Plugin class
+
+    This makes the plugin available to Plone's PAS framework.
+    The plugin can be instantiated and added to acl_users through:
+    - Zope Management Interface (ZMI)
+    - GenericSetup import steps
+    - Programmatic registration
+  -->
+  <class class=".plugin.AAL2Plugin">
+    <require
+        permission="zope2.ViewManagementScreens"
+        interface=".interfaces.IAAL2Plugin"
+        />
+  </class>
+
+</configure>

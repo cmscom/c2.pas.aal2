@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(if [ -d \"/workspace/specs/001-c2-pas-aal2/checklists\" ])",
+      "Bash(then ls /workspace/specs/001-c2-pas-aal2/checklists/*.md)",
+      "Bash(else echo \"No checklists directory\")",
+      "Bash(fi)",
+      "Bash(git rev-parse:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(python:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(uv pip install:*)",
+      "Bash(pytest:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
