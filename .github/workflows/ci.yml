@@ -14,7 +14,7 @@ name: CI
 
 on:
   push:
-    branches: ['**']  # Run on all branches to catch issues early
+    branches: [main]  # Run on all branches to catch issues early
   pull_request:
     types: [opened, synchronize, reopened]
 
