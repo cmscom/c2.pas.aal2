@@ -1,0 +1,261 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="plone">
+
+<head>
+  <metal:block fill-slot="javascript_head_slot">
+    <script type="text/javascript" tal:content="structure string:
+      // Check WebAuthn support
+      var webauthnSupported = !!window.PublicKeyCredential;
+
+      // Show/hide passkey option based on browser support
+      document.addEventListener('DOMContentLoaded', function() {
+        if (!webauthnSupported) {
+          var passkeySection = document.getElementById('passkey-login-section');
+          if (passkeySection) {
+            passkeySection.style.display = 'none';
+          }
+          var noSupportWarning = document.getElementById('webauthn-not-supported');
+          if (noSupportWarning) {
+            noSupportWarning.style.display = 'block';
+          }
+        }
+      });
+
+      // Toggle between password and passkey forms
+      function showPasswordForm() {
+        document.getElementById('password-login-section').style.display = 'block';
+        document.getElementById('passkey-login-section').style.display = 'none';
+      }
+
+      function showPasskeyForm() {
+        document.getElementById('password-login-section').style.display = 'none';
+        document.getElementById('passkey-login-section').style.display = 'block';
+      }
+    ">
+    </script>
+  </metal:block>
+</head>
+
+<body>
+  <metal:content-core fill-slot="content-core">
+    <metal:block define-macro="content-core">
+
+      <h1 class="documentFirstHeading" i18n:translate="">Sign In</h1>
+
+      <div class="documentDescription" i18n:translate="">
+        Choose your preferred sign-in method below.
+      </div>
+
+      <!-- WebAuthn not supported warning -->
+      <div id="webauthn-not-supported" class="portalMessage warning" style="display: none;">
+        <strong i18n:translate="">Your browser doesn't support passkeys</strong>
+        <p i18n:translate="">
+          Please use password login below or upgrade to a modern browser (Chrome, Firefox, Safari, or Edge).
+        </p>
+      </div>
+
+      <!-- Login method selector -->
+      <div class="login-method-selector" style="margin-bottom: 1.5em; text-align: center;">
+        <button type="button"
+                onclick="showPasskeyForm()"
+                id="show-passkey-btn"
+                class="btn btn-primary"
+                i18n:translate="">
+          Sign in with Passkey
+        </button>
+        <span style="margin: 0 1em;" i18n:translate="">or</span>
+        <button type="button"
+                onclick="showPasswordForm()"
+                id="show-password-btn"
+                class="btn btn-secondary"
+                i18n:translate="">
+          Use Password Instead
+        </button>
+      </div>
+
+      <!-- Passkey login section -->
+      <div id="passkey-login-section" style="display: block;">
+        <h2 i18n:translate="">Sign in with Passkey</h2>
+
+        <div class="documentDescription" i18n:translate="">
+          Use your passkey (biometric sensor or security key) to sign in securely without a password.
+        </div>
+
+        <div id="passkey-login-info" class="portalMessage info" style="display: none;">
+          <strong i18n:translate="">Touch your security key or use your device's biometric sensor</strong>
+        </div>
+
+        <div id="passkey-error" class="portalMessage error" style="display: none;"></div>
+        <div id="passkey-success" class="portalMessage info" style="display: none;"></div>
+
+        <form id="login-passkey-form" method="post">
+          <div class="field">
+            <label for="passkey-username" i18n:translate="">Username or Email (Optional)</label>
+            <div class="formHelp" i18n:translate="">
+              Enter your username to filter available passkeys, or leave blank to use any registered passkey
+            </div>
+            <input type="text"
+                   id="passkey-username"
+                   name="username"
+                   class="form-control"
+                   placeholder="username"
+                   i18n:attributes="placeholder" />
+          </div>
+
+          <div class="formControls">
+            <button type="button"
+                    id="passkey-login-button"
+                    class="btn btn-primary"
+                    i18n:translate="">
+              Sign in with Passkey
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Password login section -->
+      <div id="password-login-section" style="display: none;">
+        <h2 i18n:translate="">Sign in with Password</h2>
+
+        <tal:block tal:replace="structure view/standard_login_form" />
+
+        <div class="formHelp" style="margin-top: 1em;">
+          <p i18n:translate="">
+            <a tal:attributes="href string:${context/portal_url}/@@mail_password_form">
+              Forgot your password?
+            </a>
+          </p>
+        </div>
+      </div>
+
+    </metal:block>
+  </metal:content-core>
+
+  <metal:javascript fill-slot="javascript_head_slot">
+    <script type="text/javascript" tal:content="structure string:
+      // Base64url encoding/decoding helpers
+      function base64urlDecode(input) {
+        input = input.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = input.length % 4;
+        if (pad) {
+          if (pad === 1) {
+            throw new Error('Invalid base64url string');
+          }
+          input += new Array(5 - pad).join('=');
+        }
+        const base64 = atob(input);
+        const bytes = new Uint8Array(base64.length);
+        for (let i = 0; i < base64.length; i++) {
+          bytes[i] = base64.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      function base64urlEncode(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        return base64.replace(/\\\\+/g, '-').replace(/\\\\//g, '_').replace(/=/g, '');
+      }
+
+      // Passkey login handler
+      if (document.getElementById('passkey-login-button')) {
+        document.getElementById('passkey-login-button').addEventListener('click', async function() {
+          const username = document.getElementById('passkey-username').value;
+
+          const errorDiv = document.getElementById('passkey-error');
+          const successDiv = document.getElementById('passkey-success');
+          const infoDiv = document.getElementById('passkey-login-info');
+
+          errorDiv.style.display = 'none';
+          successDiv.style.display = 'none';
+          infoDiv.style.display = 'none';
+
+          try {
+            // Step 1: Get authentication options
+            const optionsResponse = await fetch('@@passkey-login-options', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({username: username || null})
+            });
+
+            if (!optionsResponse.ok) {
+              const error = await optionsResponse.json();
+              throw new Error(error.message || 'Failed to get authentication options');
+            }
+
+            const optionsData = await optionsResponse.json();
+            const options = optionsData.publicKey;
+
+            // Decode base64url fields
+            options.challenge = base64urlDecode(options.challenge);
+            if (options.allowCredentials) {
+              options.allowCredentials = options.allowCredentials.map(cred => ({
+                ...cred,
+                id: base64urlDecode(cred.id)
+              }));
+            }
+
+            infoDiv.style.display = 'block';
+
+            // Step 2: Call WebAuthn API
+            const credential = await navigator.credentials.get({publicKey: options});
+            infoDiv.style.display = 'none';
+
+            // Step 3: Verify assertion
+            const verifyResponse = await fetch('@@passkey-login-verify', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                credential: {
+                  id: credential.id,
+                  rawId: base64urlEncode(credential.rawId),
+                  type: credential.type,
+                  response: {
+                    clientDataJSON: base64urlEncode(credential.response.clientDataJSON),
+                    authenticatorData: base64urlEncode(credential.response.authenticatorData),
+                    signature: base64urlEncode(credential.response.signature),
+                    userHandle: credential.response.userHandle ?
+                      base64urlEncode(credential.response.userHandle) : null
+                  }
+                },
+                username: username || null
+              })
+            });
+
+            if (!verifyResponse.ok) {
+              const error = await verifyResponse.json();
+              throw new Error(error.message || 'Authentication failed');
+            }
+
+            const result = await verifyResponse.json();
+
+            // Success!
+            successDiv.innerHTML = '<strong>Success!</strong> You are now logged in. Redirecting...';
+            successDiv.style.display = 'block';
+
+            setTimeout(function() {
+              window.location.href = result.redirect_url || '/';
+            }, 1000);
+
+          } catch (error) {
+            console.error('Passkey login error:', error);
+            errorDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
+            errorDiv.style.display = 'block';
+            infoDiv.style.display = 'none';
+          }
+        });
+      }
+    ">
+    </script>
+  </metal:javascript>
+
+</body>
+</html>

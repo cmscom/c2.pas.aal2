@@ -1,0 +1,13 @@
+<li tal:condition="view/available"
+    id="passkey-management-link"
+    class="passkey-management">
+  <a tal:attributes="href view/passkey_manage_url"
+     i18n:translate="">
+    Manage Passkeys
+    <span tal:condition="view/passkey_count"
+          class="badge"
+          tal:content="view/passkey_count">
+      0
+    </span>
+  </a>
+</li>

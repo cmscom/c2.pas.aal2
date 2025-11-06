@@ -1,0 +1,101 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="c2.pas.aal2">
+
+  <!-- Passkey Registration Views -->
+  <browser:page
+      name="passkey-register-options"
+      for="*"
+      class=".views.PasskeyRegisterOptionsView"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      name="passkey-register-verify"
+      for="*"
+      class=".views.PasskeyRegisterVerifyView"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      name="passkey-register-form"
+      for="*"
+      class=".views.PasskeyRegisterFormView"
+      template="templates/register_passkey.pt"
+      permission="zope2.View"
+      />
+
+  <!-- Passkey Login Views -->
+  <browser:page
+      name="passkey-login-options"
+      for="*"
+      class=".views.PasskeyLoginOptionsView"
+      permission="zope2.Public"
+      />
+
+  <browser:page
+      name="passkey-login-verify"
+      for="*"
+      class=".views.PasskeyLoginVerifyView"
+      permission="zope2.Public"
+      />
+
+  <browser:page
+      name="passkey-login-form"
+      for="*"
+      class=".views.PasskeyLoginFormView"
+      template="templates/login_with_passkey.pt"
+      permission="zope2.Public"
+      />
+
+  <!-- Passkey Management Views -->
+  <browser:page
+      name="passkey-list"
+      for="*"
+      class=".views.PasskeyListView"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      name="passkey-delete"
+      for="*"
+      class=".views.PasskeyDeleteView"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      name="passkey-update"
+      for="*"
+      class=".views.PasskeyUpdateView"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      name="passkey-manage"
+      for="*"
+      class=".views.PasskeyManageView"
+      template="templates/manage_passkeys.pt"
+      permission="zope2.View"
+      />
+
+  <!-- Viewlet for personal toolbar -->
+  <browser:viewlet
+      name="c2.pas.aal2.passkey-management"
+      manager="plone.app.layout.viewlets.interfaces.IPersonalBarViewletManager"
+      class=".viewlets.PasskeyManagementViewlet"
+      template="templates/passkey_viewlet.pt"
+      permission="zope2.View"
+      layer="*"
+      />
+
+  <!-- Enhanced Login View (US4) -->
+  <browser:page
+      name="passkey-enhanced-login"
+      for="*"
+      class=".views.EnhancedLoginView"
+      template="templates/enhanced_login.pt"
+      permission="zope2.Public"
+      />
+
+</configure>

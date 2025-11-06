@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pluggable-auth-service>
+  <plugins>
+    <plugin
+        id="aal2_plugin"
+        type_name="C2 PAS AAL2 Plugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.IAuthenticationPlugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.IExtractionPlugin"
+        meta_type="C2 PAS AAL2 Plugin"
+        />
+  </plugins>
+</pluggable-auth-service>

@@ -1,35 +1,48 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-version = '0.1.0'
+version = '1.0.0'
 
 long_description = '\n\n'.join([
-    open('README.md').read() if open('README.md', encoding='utf-8') else '',
+    open('docs/README.md').read() if open('docs/README.md', encoding='utf-8') else '',
     open('CHANGES.rst').read() if open('CHANGES.rst', encoding='utf-8') else '',
 ])
 
 setup(
     name='c2.pas.aal2',
     version=version,
-    description='Plone PAS AAL2 Authentication Plugin Template',
+    description='WebAuthn Passkey Authentication for Plone - Modern passwordless login using biometrics and security keys',
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
+        'Environment :: Web Environment',
         'Framework :: Plone',
         'Framework :: Plone :: 5.2',
         'Framework :: Plone :: 6.0',
+        'Framework :: Plone :: Addon',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: JavaScript',
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: System :: Systems Administration :: Authentication/Directory',
     ],
-    keywords='Plone PAS authentication AAL2 security',
-    author='Your Name',
-    author_email='your.email@example.com',
-    url='https://github.com/yourusername/c2.pas.aal2',
+    keywords='Plone PAS authentication AAL2 security WebAuthn passkey FIDO2 biometric passwordless',
+    author='Your Organization',
+    author_email='admin@example.com',
+    url='https://github.com/your-org/c2.pas.aal2',
+    project_urls={
+        'Documentation': 'https://c2-pas-aal2.readthedocs.io/',
+        'Source': 'https://github.com/your-org/c2.pas.aal2',
+        'Tracker': 'https://github.com/your-org/c2.pas.aal2/issues',
+    },
     license='GPLv2',
 
     # src/ レイアウトの設定
@@ -48,6 +61,10 @@ setup(
         'setuptools',
         'Plone>=5.2',
         'Products.PluggableAuthService',
+        'webauthn==2.7.0',  # WebAuthn passkey authentication
+        'zope.annotation',
+        'zope.session',
+        'persistent',
     ],
     extras_require={
         'test': [
