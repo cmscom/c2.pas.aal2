@@ -1,0 +1,222 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="c2.pas.aal2">
+
+<body>
+  <metal:content-core fill-slot="content-core">
+    <metal:block define-macro="content-core">
+
+      <h1 class="documentFirstHeading" i18n:translate="">Register a Passkey</h1>
+
+      <div class="documentDescription" i18n:translate="">
+        Add a passkey to your account for passwordless authentication. You can use your device's
+        biometric sensor (fingerprint, face recognition) or a security key.
+      </div>
+
+      <div id="passkey-register-form" class="portalMessage info" style="display: none;">
+        <strong i18n:translate="">Touch your security key or use your device's biometric sensor</strong>
+      </div>
+
+      <div id="passkey-error" class="portalMessage error" style="display: none;"></div>
+      <div id="passkey-success" class="portalMessage info" style="display: none;"></div>
+
+      <form id="register-passkey-form" method="post">
+        <div class="field">
+          <label for="device-name" i18n:translate="">Device Name (Optional)</label>
+          <div class="formHelp" i18n:translate="">
+            Give this passkey a friendly name (e.g., "My iPhone", "YubiKey 5")
+          </div>
+          <input type="text"
+                 id="device-name"
+                 name="device_name"
+                 class="form-control"
+                 maxlength="100"
+                 placeholder="My Device"
+                 i18n:attributes="placeholder" />
+        </div>
+
+        <div class="field">
+          <label for="authenticator-type" i18n:translate="">Authenticator Type</label>
+          <div class="formHelp" i18n:translate="">
+            Choose the type of authenticator you want to use
+          </div>
+          <select id="authenticator-type" name="authenticator_attachment" class="form-control">
+            <option value="" i18n:translate="">Any (Platform or Security Key)</option>
+            <option value="platform" i18n:translate="">Platform (This Device)</option>
+            <option value="cross-platform" i18n:translate="">Cross-Platform (Security Key)</option>
+          </select>
+        </div>
+
+        <div class="formControls">
+          <button type="button"
+                  id="register-button"
+                  class="btn btn-primary"
+                  i18n:translate="">
+            Register Passkey
+          </button>
+          <a tal:attributes="href python:context.absolute_url() + '/@@personal-information'"
+             class="btn btn-secondary"
+             i18n:translate="">
+            Cancel
+          </a>
+        </div>
+      </form>
+
+      <div id="browser-support-warning" class="portalMessage warning" style="display: none;">
+        <strong i18n:translate="">WebAuthn Not Supported</strong>
+        <p i18n:translate="">
+          Your browser does not support WebAuthn (passkey authentication).
+          Please use a modern browser like Chrome, Firefox, Safari, or Edge.
+        </p>
+      </div>
+
+    </metal:block>
+  </metal:content-core>
+
+  <metal:javascript fill-slot="javascript_head_slot">
+    <script type="text/javascript" tal:content="structure string:
+      // Base64url encoding/decoding helpers
+      function base64urlDecode(input) {
+        input = input.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = input.length % 4;
+        if (pad) {
+          if (pad === 1) {
+            throw new Error('Invalid base64url string');
+          }
+          input += new Array(5 - pad).join('=');
+        }
+        const base64 = atob(input);
+        const bytes = new Uint8Array(base64.length);
+        for (let i = 0; i < base64.length; i++) {
+          bytes[i] = base64.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      function base64urlEncode(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        return base64.replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');
+      }
+
+      // Check browser support
+      if (!window.PublicKeyCredential) {
+        document.getElementById('browser-support-warning').style.display = 'block';
+        document.getElementById('register-passkey-form').style.display = 'none';
+      }
+
+      // Register passkey
+      document.getElementById('register-button').addEventListener('click', async function() {
+        const deviceName = document.getElementById('device-name').value;
+        const authenticatorType = document.getElementById('authenticator-type').value;
+
+        const errorDiv = document.getElementById('passkey-error');
+        const successDiv = document.getElementById('passkey-success');
+        const infoDiv = document.getElementById('passkey-register-form');
+
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+        infoDiv.style.display = 'none';
+
+        try {
+          // Step 1: Get registration options from server
+          const optionsResponse = await fetch('@@passkey-register-options', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              device_name: deviceName,
+              authenticator_attachment: authenticatorType || null
+            })
+          });
+
+          if (!optionsResponse.ok) {
+            const error = await optionsResponse.json();
+            throw new Error(error.message || 'Failed to get registration options');
+          }
+
+          const optionsData = await optionsResponse.json();
+          const options = optionsData.publicKey;
+
+          // Decode base64url fields
+          options.challenge = base64urlDecode(options.challenge);
+          options.user.id = base64urlDecode(options.user.id);
+          if (options.excludeCredentials) {
+            options.excludeCredentials = options.excludeCredentials.map(cred => ({
+              ...cred,
+              id: base64urlDecode(cred.id)
+            }));
+          }
+
+          // Show info message
+          infoDiv.style.display = 'block';
+
+          // Step 2: Call WebAuthn API
+          const credential = await navigator.credentials.create({
+            publicKey: options
+          });
+
+          // Hide info message
+          infoDiv.style.display = 'none';
+
+          // Step 3: Send credential to server for verification
+          const verifyResponse = await fetch('@@passkey-register-verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              credential: {
+                id: credential.id,
+                rawId: base64urlEncode(credential.rawId),
+                type: credential.type,
+                response: {
+                  clientDataJSON: base64urlEncode(credential.response.clientDataJSON),
+                  attestationObject: base64urlEncode(credential.response.attestationObject)
+                },
+                transports: credential.response.getTransports ? credential.response.getTransports() : []
+              },
+              device_name: deviceName
+            })
+          });
+
+          if (!verifyResponse.ok) {
+            const error = await verifyResponse.json();
+            throw new Error(error.message || 'Verification failed');
+          }
+
+          const result = await verifyResponse.json();
+
+          // Success!
+          successDiv.innerHTML = '<strong>Success!</strong> Your passkey has been registered. You can now use it to log in.';
+          successDiv.style.display = 'block';
+
+          // Clear form
+          document.getElementById('device-name').value = '';
+
+          // Redirect after 2 seconds
+          setTimeout(function() {
+            window.location.href = '@@personal-information';
+          }, 2000);
+
+        } catch (error) {
+          console.error('Passkey registration error:', error);
+          errorDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
+          errorDiv.style.display = 'block';
+          infoDiv.style.display = 'none';
+        }
+      });
+    ">
+    </script>
+  </metal:javascript>
+
+</body>
+</html>
