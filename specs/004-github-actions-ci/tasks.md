@@ -24,10 +24,10 @@
 
 **Purpose**: Prepare project configuration files and development dependencies
 
-- [ ] T001 Create `.github/workflows/` directory structure
-- [ ] T002 [P] Add development dependencies to `/workspace/pyproject.toml` (pytest>=8.0, pytest-cov>=5.0, pytest-xdist>=3.5, pyright>=1.1, ruff>=0.8.0,<0.9.0)
-- [ ] T003 [P] Create pyrightconfig.json in `/workspace/pyrightconfig.json` with Python 3.11 target and basic type checking mode
-- [ ] T004 [P] Update pytest.ini in `/workspace/pytest.ini` to add new markers (slow, smoke, webauthn) and enable parallel execution with -n auto
+- [X] T001 Create `.github/workflows/` directory structure
+- [X] T002 [P] Add development dependencies to `/workspace/pyproject.toml` (pytest>=8.0, pytest-cov>=5.0, pytest-xdist>=3.5, pyright>=1.1, ruff>=0.8.0,<0.9.0)
+- [X] T003 [P] Create pyrightconfig.json in `/workspace/pyrightconfig.json` with Python 3.11 target and basic type checking mode
+- [X] T004 [P] Update pytest.ini in `/workspace/pytest.ini` to add new markers (slow, smoke, webauthn) and enable parallel execution with -n auto
 
 ---
 
@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Update lockfile by running `uv lock` to include new development dependencies
-- [ ] T006 Verify existing tests pass with new pytest configuration by running `uv run pytest`
+- [X] T005 Update lockfile by running `uv lock` to include new development dependencies
+- [X] T006 Verify existing tests pass with new pytest configuration by running `uv run pytest`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -52,16 +52,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Create base CI workflow file in `.github/workflows/ci.yml` with name, triggers (push, pull_request), and environment variables (UV_CACHE_DIR)
-- [ ] T008 [US1] Add lint-and-typecheck job to `.github/workflows/ci.yml` that runs on ubuntu-latest with Python 3.11
-- [ ] T009 [US1] Configure checkout step in lint-and-typecheck job using actions/checkout@v4
-- [ ] T010 [US1] Configure uv setup step in lint-and-typecheck job using astral-sh/setup-uv@v5
-- [ ] T011 [US1] Configure Python 3.11 installation step in lint-and-typecheck job
-- [ ] T012 [US1] Add cache configuration step for uv dependencies with lockfile-based cache key in lint-and-typecheck job
-- [ ] T013 [US1] Add dependency installation step using `uv sync --frozen --all-extras` in lint-and-typecheck job
-- [ ] T014 [US1] Add ruff linting step using `uv run ruff check .` in lint-and-typecheck job
-- [ ] T015 [US1] Add pyright type checking step using `uv run pyright` in lint-and-typecheck job
-- [ ] T016 [US1] Add cache pruning step using `uv cache prune --ci` in lint-and-typecheck job
+- [X] T007 [US1] Create base CI workflow file in `.github/workflows/ci.yml` with name, triggers (push, pull_request), and environment variables (UV_CACHE_DIR)
+- [X] T008 [US1] Add lint-and-typecheck job to `.github/workflows/ci.yml` that runs on ubuntu-latest with Python 3.11
+- [X] T009 [US1] Configure checkout step in lint-and-typecheck job using actions/checkout@v4
+- [X] T010 [US1] Configure uv setup step in lint-and-typecheck job using astral-sh/setup-uv@v5
+- [X] T011 [US1] Configure Python 3.11 installation step in lint-and-typecheck job
+- [X] T012 [US1] Add cache configuration step for uv dependencies with lockfile-based cache key in lint-and-typecheck job
+- [X] T013 [US1] Add dependency installation step using `uv sync --frozen --all-extras` in lint-and-typecheck job
+- [X] T014 [US1] Add ruff linting step using `uv run ruff check .` in lint-and-typecheck job
+- [X] T015 [US1] Add pyright type checking step using `uv run pyright` in lint-and-typecheck job
+- [X] T016 [US1] Add cache pruning step using `uv cache prune --ci` in lint-and-typecheck job
 
 **Checkpoint**: At this point, lint and type check CI should run automatically on pushes/PRs and report quality issues
 
@@ -75,16 +75,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Add test job with matrix strategy to `.github/workflows/ci.yml` for Python versions ["3.11", "3.12", "3.13"]
-- [ ] T018 [US2] Configure test job to run on ubuntu-latest with fail-fast: false
-- [ ] T019 [US2] Add checkout step to test job using actions/checkout@v4
-- [ ] T020 [US2] Add uv setup step to test job using astral-sh/setup-uv@v5
-- [ ] T021 [US2] Add Python version installation step using matrix.python-version variable in test job
-- [ ] T022 [US2] Add version-specific cache configuration with Python version in cache key for test job
-- [ ] T023 [US2] Add dependency installation step using `uv sync --frozen --all-extras` in test job
-- [ ] T024 [US2] Add pytest execution step with coverage using `uv run pytest --cov --cov-report=xml --cov-report=term-missing` in test job
-- [ ] T025 [US2] Add Codecov upload step using codecov/codecov-action@v4 with fail_ci_if_error: false in test job
-- [ ] T026 [US2] Add cache pruning step using `uv cache prune --ci` in test job
+- [X] T017 [US2] Add test job with matrix strategy to `.github/workflows/ci.yml` for Python versions ["3.11", "3.12", "3.13"]
+- [X] T018 [US2] Configure test job to run on ubuntu-latest with fail-fast: false
+- [X] T019 [US2] Add checkout step to test job using actions/checkout@v4
+- [X] T020 [US2] Add uv setup step to test job using astral-sh/setup-uv@v5
+- [X] T021 [US2] Add Python version installation step using matrix.python-version variable in test job
+- [X] T022 [US2] Add version-specific cache configuration with Python version in cache key for test job
+- [X] T023 [US2] Add dependency installation step using `uv sync --frozen --all-extras` in test job
+- [X] T024 [US2] Add pytest execution step with coverage using `uv run pytest --cov --cov-report=xml --cov-report=term-missing` in test job
+- [X] T025 [US2] Add Codecov upload step using codecov/codecov-action@v4 with fail_ci_if_error: false in test job
+- [X] T026 [US2] Add cache pruning step using `uv cache prune --ci` in test job
 
 **Checkpoint**: At this point, tests should run on all three Python versions in parallel, with version-specific failures clearly attributed
 
@@ -98,10 +98,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Verify workflow triggers are configured for all branches (push on `branches: ['**']` already configured in T007)
-- [ ] T028 [US3] Add descriptive job names and step names to improve visibility in GitHub Actions UI
-- [ ] T029 [US3] Test workflow by pushing to a feature branch and verifying all jobs appear in Actions tab
-- [ ] T030 [US3] Verify job failure notifications include links to specific failing jobs and clear error messages
+- [X] T027 [US3] Verify workflow triggers are configured for all branches (push on `branches: ['**']` already configured in T007)
+- [X] T028 [US3] Add descriptive job names and step names to improve visibility in GitHub Actions UI
+- [X] T029 [US3] Test workflow by pushing to a feature branch and verifying all jobs appear in Actions tab
+- [X] T030 [US3] Verify job failure notifications include links to specific failing jobs and clear error messages
 
 **Checkpoint**: All user stories should now be independently functional - CI runs on every push with comprehensive feedback
 
@@ -111,13 +111,13 @@
 
 **Purpose**: Improvements and optimizations that affect multiple user stories
 
-- [ ] T031 [P] Add comments to `.github/workflows/ci.yml` explaining cache strategy, Python version choice for linting, and performance optimizations
-- [ ] T032 [P] Create `.github/PULL_REQUEST_TEMPLATE.md` with CI checklist reminder (optional enhancement)
-- [ ] T033 Verify complete workflow file follows all recommendations from research.md
-- [ ] T034 Test workflow with intentional failures (linting error, type error, test failure) to verify error reporting quality
-- [ ] T035 Test workflow with clean code to verify all jobs pass and caching works on second run
-- [ ] T036 Measure CI execution time and verify it meets <10 minute requirement (target: 3-5 minutes)
-- [ ] T037 Document CI setup in project README with badges for build status (optional enhancement)
+- [X] T031 [P] Add comments to `.github/workflows/ci.yml` explaining cache strategy, Python version choice for linting, and performance optimizations
+- [X] T032 [P] Create `.github/PULL_REQUEST_TEMPLATE.md` with CI checklist reminder (optional enhancement)
+- [X] T033 Verify complete workflow file follows all recommendations from research.md
+- [X] T034 Test workflow with intentional failures (linting error, type error, test failure) to verify error reporting quality
+- [X] T035 Test workflow with clean code to verify all jobs pass and caching works on second run
+- [X] T036 Measure CI execution time and verify it meets <10 minute requirement (target: 3-5 minutes)
+- [X] T037 Document CI setup in project README with badges for build status (optional enhancement)
 
 ---
 

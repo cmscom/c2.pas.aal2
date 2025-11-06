@@ -68,8 +68,15 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest',
-            'pytest-cov',
+            'pytest>=8.0',
+            'pytest-cov>=5.0',
+        ],
+        'dev': [
+            'pytest>=8.0',
+            'pytest-cov>=5.0',
+            'pytest-xdist>=3.5',
+            'pyright>=1.1',
+            'ruff>=0.8.0,<0.9.0',
         ],
     },
 

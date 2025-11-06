@@ -29,7 +29,13 @@
       "Bash(ruff check:*)",
       "Bash(done)",
       "Bash(find:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(if [ -d \"/workspace/specs/004-github-actions-ci/checklists\" ])",
+      "Bash(then ls /workspace/specs/004-github-actions-ci/checklists/*.md)",
+      "Bash(uv lock:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
