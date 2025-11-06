@@ -14,7 +14,6 @@ from webauthn.helpers.structs import (
     AttestationConveyancePreference,
     AuthenticatorAttachment,
 )
-from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
 import logging
 
 logger = logging.getLogger('c2.pas.aal2.utils.webauthn')
@@ -102,7 +101,7 @@ def verify_registration(credential, expected_challenge, expected_origin, expecte
             expected_rp_id=expected_rp_id,
         )
 
-        logger.info(f"Successfully verified registration")
+        logger.info("Successfully verified registration")
         return verification
 
     except Exception as e:
@@ -176,7 +175,7 @@ def verify_authentication(credential, expected_challenge, expected_origin, expec
             credential_current_sign_count=credential_current_sign_count,
         )
 
-        logger.info(f"Successfully verified authentication")
+        logger.info("Successfully verified authentication")
         return verification
 
     except Exception as e:

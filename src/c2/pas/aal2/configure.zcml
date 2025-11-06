@@ -22,6 +22,17 @@
 
   <!-- Include dependent configurations if needed -->
   <include package="Products.PluggableAuthService" />
+  <include package="Products.GenericSetup" file="meta.zcml" />
+
+  <!-- Register GenericSetup profile for AAL2 installation -->
+  <genericsetup:registerProfile
+      name="default"
+      title="C2 PAS AAL2 Plugin"
+      directory="profiles/default"
+      description="Installs AAL2 authentication plugin with permissions and roles"
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+      />
 
   <!--
     Register the AAL2Plugin class

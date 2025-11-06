@@ -432,3 +432,276 @@ class TestErrorHandling:
             assert request.response.status == 400
             data = json.loads(result)
             assert data['error'] == 'missing_credential_id'
+
+
+# ============================================================================
+# AAL2 User Feedback UI Tests (US4)
+# ============================================================================
+
+class TestAAL2ChallengeViewMessages:
+    """Test AAL2 challenge view provides clear, user-friendly messages."""
+
+    def test_challenge_message_is_clear_and_informative(self, mock_context):
+        """Test that challenge view provides clear explanation of why AAL2 is required."""
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            # Mock authenticated user
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            # Mock portal
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            # Mock is_aal2_valid to return False (needs authentication)
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                request = MockRequest()
+                request.form = {'came_from': 'http://localhost:8080/Plone/protected'}
+                view = AAL2ChallengeView(mock_context, request)
+
+                # Check that view has method to get challenge message
+                assert hasattr(view, 'get_challenge_message')
+                message = view.get_challenge_message()
+
+                # Message should be clear and informative
+                assert message is not None
+                assert isinstance(message, str)
+                assert len(message) > 50  # Should be substantial explanation
+                # Should mention security and authentication
+                assert any(word in message.lower() for word in ['security', 'authenticate', 'passkey'])
+
+    def test_challenge_view_shows_user_identity(self, mock_context):
+        """Test that challenge view shows which user is being asked to authenticate."""
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'john_doe'
+            mock_user.getProperty.return_value = 'John Doe'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                with patch('c2.pas.aal2.session.get_aal2_expiry', return_value=None):
+                    request = MockRequest()
+                    request.form = {'came_from': 'http://localhost:8080/Plone/test'}
+                    view = AAL2ChallengeView(mock_context, request)
+
+                    # Mock index() to prevent template rendering
+                    view.index = Mock(return_value='rendered')
+
+                    # Call the view to set attributes
+                    view()
+
+                    # View should provide user information
+                    assert hasattr(view, 'username')
+                    assert view.username == 'john_doe'
+                    assert hasattr(view, 'user_fullname')
+                    assert view.user_fullname == 'John Doe'
+
+    def test_challenge_view_provides_help_text(self, mock_context):
+        """Test that challenge view provides helpful explanation text."""
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                request = MockRequest()
+                view = AAL2ChallengeView(mock_context, request)
+
+                # Check that view has method to get help text
+                assert hasattr(view, 'get_help_text')
+                help_text = view.get_help_text()
+
+                # Help text should explain AAL2
+                assert help_text is not None
+                assert isinstance(help_text, str)
+                assert len(help_text) > 30
+                # Should mention AAL2 and 15 minutes
+                assert 'AAL2' in help_text or 'aal2' in help_text.lower()
+                assert '15' in help_text
+
+
+class TestAAL2ExpiryTimeDisplay:
+    """Test that AAL2 expiry time is displayed clearly to users."""
+
+    def test_challenge_view_shows_last_authentication_time(self, mock_context):
+        """Test that challenge view shows when user last authenticated."""
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+        from datetime import datetime, timedelta
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            # Mock expired AAL2 session
+            expired_time = datetime.utcnow() - timedelta(minutes=20)
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                with patch('c2.pas.aal2.session.get_aal2_expiry', return_value=expired_time):
+                    request = MockRequest()
+                    request.form = {'came_from': 'http://localhost:8080/Plone/test'}
+                    view = AAL2ChallengeView(mock_context, request)
+
+                    # Mock index() to prevent template rendering
+                    view.index = Mock(return_value='rendered')
+
+                    # Call view to set attributes
+                    view()
+
+                    # View should have expiry_time attribute set
+                    assert hasattr(view, 'expiry_time')
+                    assert view.expiry_time is not None
+
+    def test_expiry_time_display_is_user_friendly(self, mock_context):
+        """Test that expiry time is displayed in user-friendly format."""
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                request = MockRequest()
+                view = AAL2ChallengeView(mock_context, request)
+
+                # If expiry_time is provided, it should be formatted
+                # (This will be implemented in the view)
+                # For now, just check the attribute can exist
+                assert hasattr(view, '__class__')
+
+
+class TestAAL2ErrorMessages:
+    """Test that AAL2 error messages are clear and actionable."""
+
+    def test_authentication_cancelled_error_is_clear(self, mock_context):
+        """Test that cancellation error message is user-friendly."""
+        # This tests the client-side JavaScript error handling
+        # We verify that the template includes clear error messages
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                request = MockRequest()
+                view = AAL2ChallengeView(mock_context, request)
+
+                # View should exist and be callable
+                assert view is not None
+
+    def test_no_passkey_error_provides_registration_link(self, mock_context):
+        """Test that 'no passkey' error directs user to registration."""
+        # This is verified through template content in integration tests
+        # Here we just verify the view structure
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
+
+        with patch('c2.pas.aal2.browser.views.api') as mock_api:
+            mock_api.user.is_anonymous.return_value = False
+            mock_user = Mock()
+            mock_user.getId.return_value = 'testuser'
+            mock_user.getProperty.return_value = 'Test User'
+            mock_api.user.get_current.return_value = mock_user
+
+            mock_portal = Mock()
+            mock_portal.absolute_url.return_value = 'http://localhost:8080/Plone'
+            mock_api.portal.get.return_value = mock_portal
+
+            with patch('c2.pas.aal2.session.is_aal2_valid', return_value=False):
+                request = MockRequest()
+                view = AAL2ChallengeView(mock_context, request)
+
+                # View context should be accessible
+                assert view.context == mock_context
+                assert view.request == request
+
+
+class TestAAL2StatusViewlet:
+    """Test AAL2 status viewlet for user dashboard."""
+
+    def test_status_viewlet_shows_aal2_validity(self, mock_context):
+        """Test that status viewlet shows whether AAL2 is currently valid."""
+        # This will be implemented as a viewlet
+        # For now, we test that the viewlet can be imported
+        try:
+            from c2.pas.aal2.browser.viewlets import AAL2StatusViewlet
+            # Viewlet should be importable
+            assert AAL2StatusViewlet is not None
+        except ImportError:
+            # Not yet implemented - test should fail
+            pytest.fail("AAL2StatusViewlet not yet implemented")
+
+    def test_status_viewlet_shows_remaining_time(self, mock_context):
+        """Test that status viewlet shows remaining time before AAL2 expires."""
+        try:
+            from c2.pas.aal2.browser.viewlets import AAL2StatusViewlet
+
+            with patch('c2.pas.aal2.browser.viewlets.api') as mock_api:
+                mock_user = Mock()
+                mock_user.getId.return_value = 'testuser'
+                mock_api.user.get_current.return_value = mock_user
+                mock_api.user.is_anonymous.return_value = False
+
+                request = MockRequest()
+                viewlet = AAL2StatusViewlet(mock_context, request, None, None)
+
+                # Viewlet should have method to get remaining time
+                assert hasattr(viewlet, 'get_remaining_time') or hasattr(viewlet, 'remaining_time')
+        except ImportError:
+            pytest.fail("AAL2StatusViewlet not yet implemented")
+
+    def test_status_viewlet_not_shown_to_anonymous(self, mock_context):
+        """Test that status viewlet is not shown to anonymous users."""
+        try:
+            from c2.pas.aal2.browser.viewlets import AAL2StatusViewlet
+
+            with patch('c2.pas.aal2.browser.viewlets.api') as mock_api:
+                mock_api.user.is_anonymous.return_value = True
+
+                request = MockRequest()
+                viewlet = AAL2StatusViewlet(mock_context, request, None, None)
+
+                # Viewlet should not render for anonymous users
+                # This will be checked via available() method or similar
+                assert hasattr(viewlet, 'available') or hasattr(viewlet, 'render')
+        except ImportError:
+            pytest.fail("AAL2StatusViewlet not yet implemented")

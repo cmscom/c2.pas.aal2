@@ -89,6 +89,16 @@
       layer="*"
       />
 
+  <!-- AAL2 Status Viewlet (US4) -->
+  <browser:viewlet
+      name="c2.pas.aal2.status"
+      manager="plone.app.layout.viewlets.interfaces.IPortalHeader"
+      class=".viewlets.AAL2StatusViewlet"
+      template="aal2_status.pt"
+      permission="zope2.View"
+      layer="*"
+      />
+
   <!-- Enhanced Login View (US4) -->
   <browser:page
       name="passkey-enhanced-login"
@@ -96,6 +106,24 @@
       class=".views.EnhancedLoginView"
       template="templates/enhanced_login.pt"
       permission="zope2.Public"
+      />
+
+  <!-- AAL2 Challenge View (US1) -->
+  <browser:page
+      name="aal2-challenge"
+      for="*"
+      class=".views.AAL2ChallengeView"
+      template="aal2_challenge.pt"
+      permission="zope2.View"
+      />
+
+  <!-- AAL2 Settings View (US1/US2) -->
+  <browser:page
+      name="aal2-settings"
+      for="*"
+      class=".views.AAL2SettingsView"
+      template="aal2_settings.pt"
+      permission="cmf.ManagePortal"
       />
 
 </configure>

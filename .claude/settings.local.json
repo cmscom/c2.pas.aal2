@@ -21,7 +21,14 @@
       "Bash(if [ -d \"/workspace/specs/002-passkey-login/checklists\" ])",
       "Bash(then ls /workspace/specs/002-passkey-login/checklists/*.md)",
       "Bash(python3:*)",
-      "Bash(uv --version:*)"
+      "Bash(uv --version:*)",
+      "Bash(if [ -d \"/workspace/specs/003-aal2-compliance/checklists\" ])",
+      "Bash(then ls /workspace/specs/003-aal2-compliance/checklists/*.md)",
+      "Bash(mkdir:*)",
+      "Bash(pip install:*)",
+      "Bash(ruff check:*)",
+      "Bash(done)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

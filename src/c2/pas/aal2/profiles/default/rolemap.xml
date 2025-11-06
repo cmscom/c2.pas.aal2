@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<rolemap>
+  <roles>
+    <!-- Define the AAL2 Required User role -->
+    <role name="AAL2 Required User"/>
+  </roles>
+
+  <permissions>
+    <!-- Map the AAL2 permission to roles -->
+    <permission name="Require AAL2 Authentication" acquired="False">
+      <role name="Manager"/>
+      <role name="AAL2 Required User"/>
+    </permission>
+  </permissions>
+</rolemap>

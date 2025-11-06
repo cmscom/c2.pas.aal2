@@ -1,0 +1,371 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="c2.pas.aal2">
+
+<metal:content-core fill-slot="content-core">
+  <div id="aal2-settings-page" class="aal2-settings">
+
+    <h1 class="documentFirstHeading" i18n:translate="heading_aal2_settings">
+      AAL2 Settings & Management
+    </h1>
+
+    <p class="documentDescription" i18n:translate="description_aal2_settings">
+      Manage AAL2 (Authenticator Assurance Level 2) policies for content and users.
+    </p>
+
+    <!-- AAL2 Protected Content Section -->
+    <div class="aal2-settings-section">
+      <h2 i18n:translate="heading_protected_content">AAL2-Protected Content</h2>
+
+      <tal:block define="protected_content view/get_aal2_protected_content">
+        <tal:block condition="protected_content">
+          <table class="listing">
+            <thead>
+              <tr>
+                <th i18n:translate="label_title">Title</th>
+                <th i18n:translate="label_path">Path</th>
+                <th i18n:translate="label_type">Type</th>
+                <th i18n:translate="label_url">URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr tal:repeat="item protected_content">
+                <td tal:content="item/title">Document Title</td>
+                <td tal:content="item/path">/path/to/document</td>
+                <td tal:content="item/type">Document</td>
+                <td>
+                  <a tal:attributes="href item/url" tal:content="item/url" target="_blank">
+                    URL
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </tal:block>
+
+        <tal:block condition="not:protected_content">
+          <p class="discreet" i18n:translate="message_no_protected_content">
+            No AAL2-protected content items found.
+          </p>
+        </tal:block>
+      </tal:block>
+
+      <h3 i18n:translate="heading_set_content_policy">Set Content Policy</h3>
+      <form method="POST" class="aal2-policy-form"
+            tal:attributes="action string:${context/absolute_url}/@@aal2-settings">
+        <input type="hidden" name="action" value="set_content_policy" />
+        <input type="hidden" name="_authenticator" tal:attributes="value context/@@authenticator/token" />
+
+        <div class="field">
+          <label for="content_path" i18n:translate="label_content_path">
+            Content Path:
+          </label>
+          <input type="text"
+                 id="content_path"
+                 name="content_path"
+                 placeholder="/path/to/content"
+                 required
+                 class="form-control" />
+          <p class="help-text" i18n:translate="help_content_path">
+            Enter the full path to the content item (e.g., /Plone/folder/document)
+          </p>
+        </div>
+
+        <div class="field">
+          <label i18n:translate="label_aal2_required">AAL2 Required:</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="required" value="true" checked />
+              <span i18n:translate="label_enable">Enable</span>
+            </label>
+            <label>
+              <input type="radio" name="required" value="false" />
+              <span i18n:translate="label_disable">Disable</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="formControls">
+          <button type="submit" class="btn btn-primary" i18n:translate="button_set_policy">
+            Set Policy
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- AAL2 Required Users Section -->
+    <div class="aal2-settings-section">
+      <h2 i18n:translate="heading_aal2_users">Users with AAL2 Required Role</h2>
+
+      <tal:block define="aal2_users view/get_aal2_users">
+        <tal:block condition="aal2_users">
+          <ul class="aal2-user-list">
+            <li tal:repeat="user_id aal2_users">
+              <strong tal:content="user_id">username</strong>
+              <form method="POST" style="display:inline;" class="revoke-form"
+                    tal:attributes="action string:${context/absolute_url}/@@aal2-settings">
+                <input type="hidden" name="action" value="revoke_role" />
+                <input type="hidden" name="user_id" tal:attributes="value user_id" />
+                <input type="hidden" name="_authenticator" tal:attributes="value context/@@authenticator/token" />
+                <button type="submit"
+                        class="btn btn-sm btn-danger"
+                        i18n:translate="button_revoke_role">
+                  Revoke Role
+                </button>
+              </form>
+            </li>
+          </ul>
+        </tal:block>
+
+        <tal:block condition="not:aal2_users">
+          <p class="discreet" i18n:translate="message_no_aal2_users">
+            No users have the AAL2 Required User role.
+          </p>
+        </tal:block>
+      </tal:block>
+
+      <h3 i18n:translate="heading_assign_role">Assign AAL2 Role</h3>
+      <form method="POST" class="aal2-role-form"
+            tal:attributes="action string:${context/absolute_url}/@@aal2-settings">
+        <input type="hidden" name="action" value="assign_role" />
+        <input type="hidden" name="_authenticator" tal:attributes="value context/@@authenticator/token" />
+
+        <div class="field">
+          <label for="user_id" i18n:translate="label_user">User:</label>
+          <select id="user_id" name="user_id" required class="form-control"
+                  tal:define="all_users view/get_all_users">
+            <option value="" i18n:translate="option_select_user">-- Select User --</option>
+            <option tal:repeat="user_id all_users"
+                    tal:attributes="value user_id"
+                    tal:content="user_id">
+              username
+            </option>
+          </select>
+          <p class="help-text" i18n:translate="help_assign_role">
+            Users with the AAL2 Required User role must always authenticate with AAL2 for all resources.
+          </p>
+        </div>
+
+        <div class="formControls">
+          <button type="submit" class="btn btn-primary" i18n:translate="button_assign_role">
+            Assign Role
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- AAL2 Information Section -->
+    <div class="aal2-settings-section aal2-info">
+      <h2 i18n:translate="heading_aal2_info">About AAL2</h2>
+
+      <dl>
+        <dt i18n:translate="label_aal2_timeout">Re-authentication Timeout:</dt>
+        <dd>15 minutes</dd>
+
+        <dt i18n:translate="label_authentication_method">Authentication Method:</dt>
+        <dd i18n:translate="value_passkey_webauthn">Passkey (WebAuthn/FIDO2)</dd>
+
+        <dt i18n:translate="label_compliance_standard">Compliance Standard:</dt>
+        <dd>NIST SP 800-63B AAL2</dd>
+      </dl>
+
+      <p i18n:translate="help_aal2_overview">
+        AAL2 (Authenticator Assurance Level 2) provides high-assurance authentication through
+        multi-factor, phishing-resistant credentials. Users must re-authenticate with their
+        passkey every 15 minutes when accessing AAL2-protected content.
+      </p>
+
+      <h3 i18n:translate="heading_use_cases">Use Cases</h3>
+      <ul>
+        <li i18n:translate="usecase_sensitive_docs">
+          Sensitive documents (financial reports, HR records, confidential agreements)
+        </li>
+        <li i18n:translate="usecase_admin_interfaces">
+          Administrative interfaces and configuration panels
+        </li>
+        <li i18n:translate="usecase_privileged_users">
+          Privileged user accounts (executives, admins, compliance officers)
+        </li>
+        <li i18n:translate="usecase_audit_logs">
+          Audit logs and security-sensitive data
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <style type="text/css">
+  /* AAL2 Settings Styles */
+  .aal2-settings {
+    max-width: 1000px;
+    margin: 2em auto;
+    padding: 1em;
+  }
+
+  .aal2-settings-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 2em;
+    margin-bottom: 2em;
+    border-radius: 4px;
+  }
+
+  .aal2-settings-section h2 {
+    margin-top: 0;
+    border-bottom: 2px solid #205c90;
+    padding-bottom: 0.5em;
+  }
+
+  .aal2-settings-section h3 {
+    margin-top: 2em;
+    color: #205c90;
+  }
+
+  .aal2-policy-form,
+  .aal2-role-form {
+    max-width: 600px;
+    margin-top: 1em;
+  }
+
+  .field {
+    margin-bottom: 1.5em;
+  }
+
+  .field label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .field input[type="text"],
+  .field select {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+
+  .help-text {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 0.5em;
+  }
+
+  .radio-group {
+    margin-top: 0.5em;
+  }
+
+  .radio-group label {
+    display: inline-block;
+    margin-right: 1.5em;
+    font-weight: normal;
+  }
+
+  .radio-group input[type="radio"] {
+    margin-right: 0.5em;
+  }
+
+  .aal2-user-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .aal2-user-list li {
+    padding: 0.75em;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .aal2-user-list li:last-child {
+    border-bottom: none;
+  }
+
+  .revoke-form {
+    margin-left: auto;
+  }
+
+  .btn {
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+
+  .btn-primary {
+    background: #205c90;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #174a75;
+  }
+
+  .btn-danger {
+    background: #d9534f;
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background: #c9302c;
+  }
+
+  .btn-sm {
+    padding: 0.25em 0.75em;
+    font-size: 0.9em;
+  }
+
+  .aal2-info dl {
+    margin: 1em 0;
+  }
+
+  .aal2-info dt {
+    font-weight: bold;
+    margin-top: 1em;
+  }
+
+  .aal2-info dd {
+    margin-left: 2em;
+    color: #666;
+  }
+
+  .aal2-info ul {
+    margin: 1em 0;
+  }
+
+  .listing {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+
+  .listing th,
+  .listing td {
+    padding: 0.75em;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .listing th {
+    background: #f5f5f5;
+    font-weight: bold;
+  }
+
+  .listing tr:hover {
+    background: #f9f9f9;
+  }
+
+  .discreet {
+    color: #999;
+    font-style: italic;
+  }
+  </style>
+
+</metal:content-core>
+
+</html>

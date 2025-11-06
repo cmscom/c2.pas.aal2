@@ -4,6 +4,7 @@
 from Products.Five.browser import BrowserView
 from plone import api
 from webauthn.helpers import options_to_json
+from AccessControl import Unauthorized
 import json
 import logging
 
@@ -610,7 +611,6 @@ class EnhancedLoginView(BrowserView):
         """Return the standard Plone login form HTML."""
         # Get the standard login form from Plone
         # This includes all the standard password login fields
-        from Products.CMFPlone.browser.login.login import LoginForm
 
         # Create a simple form that posts to acl_users/credentials_cookie_auth/login
         portal_url = api.portal.get().absolute_url()
@@ -651,3 +651,275 @@ class EnhancedLoginView(BrowserView):
           </div>
         </form>
         """
+
+
+class AAL2ChallengeView(BrowserView):
+    """AAL2 step-up authentication challenge view.
+
+    This view is displayed when a user tries to access AAL2-protected content
+    but their AAL2 authentication has expired (>15 minutes since last passkey auth).
+    """
+
+    def __call__(self):
+        """Render the AAL2 challenge page."""
+        # Check if user is authenticated
+        if api.user.is_anonymous():
+            # Redirect to login page
+            portal_url = api.portal.get().absolute_url()
+            came_from = self.request.get('came_from', portal_url)
+            login_url = f"{portal_url}/login?came_from={came_from}"
+            return self.request.response.redirect(login_url)
+
+        # Get came_from parameter (where to redirect after successful auth)
+        self.came_from = self.request.get('came_from', api.portal.get().absolute_url())
+
+        # Get current user info
+        current_user = api.user.get_current()
+        self.username = current_user.getId()
+        self.user_fullname = current_user.getProperty('fullname', self.username)
+
+        # Check AAL2 status
+        from c2.pas.aal2.session import is_aal2_valid, get_aal2_expiry, get_remaining_time
+        self.aal2_valid = is_aal2_valid(current_user)
+
+        if self.aal2_valid:
+            # Already authenticated, redirect to came_from
+            logger.info(f"User {self.username} already has valid AAL2, redirecting to {self.came_from}")
+            return self.request.response.redirect(self.came_from)
+
+        # Get expiry info if exists
+        expiry = get_aal2_expiry(current_user)
+        if expiry:
+            self.expiry_time = expiry.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            self.expiry_time = None
+
+        return self.index()
+
+    def get_challenge_message(self):
+        """Get user-friendly challenge message."""
+        return (
+            "For your security, access to this resource requires recent authentication with your passkey. "
+            "Please authenticate using your passkey to continue."
+        )
+
+    def get_help_text(self):
+        """Get help text for the challenge."""
+        return (
+            "AAL2 (Authenticator Assurance Level 2) requires you to re-authenticate with your passkey "
+            "every 15 minutes when accessing protected resources. This ensures the highest level of security "
+            "for sensitive content."
+        )
+
+
+class AAL2SettingsView(BrowserView):
+    """AAL2 settings and management view for administrators.
+
+    Allows administrators to:
+    - View AAL2 configuration
+    - List AAL2-protected content
+    - List users with AAL2 Required User role
+    - Manage AAL2 policies
+    """
+
+    def __call__(self):
+        """Render the AAL2 settings page."""
+        # Require Manager role
+        if not api.user.has_permission('Manage portal'):
+            raise Unauthorized("You must be a Manager to access AAL2 settings")
+
+        # Handle form submissions
+        if self.request.method == 'POST':
+            # Verify CSRF token
+            from plone.protect import CheckAuthenticator
+            CheckAuthenticator(self.request)
+
+            action = self.request.form.get('action')
+
+            if action == 'set_content_policy':
+                return self.set_content_policy()
+            elif action == 'assign_role':
+                return self.assign_aal2_role()
+            elif action == 'revoke_role':
+                return self.revoke_aal2_role()
+
+        return self.index()
+
+    def get_aal2_protected_content(self):
+        """Get list of AAL2-protected content items."""
+        from c2.pas.aal2.policy import list_aal2_protected_content
+        try:
+            return list_aal2_protected_content()
+        except Exception as e:
+            logger.error(f"Failed to list AAL2 protected content: {e}", exc_info=True)
+            return []
+
+    def get_aal2_users(self):
+        """Get list of users with AAL2 Required User role."""
+        from c2.pas.aal2.roles import list_aal2_users
+        try:
+            portal = api.portal.get()
+            return list_aal2_users(portal)
+        except Exception as e:
+            logger.error(f"Failed to list AAL2 users: {e}", exc_info=True)
+            return []
+
+    def get_all_users(self):
+        """Get list of all users (for role assignment)."""
+        try:
+            acl_users = api.portal.get_tool('acl_users')
+            user_ids = acl_users.getUserIds()
+            return sorted(user_ids)
+        except Exception as e:
+            logger.error(f"Failed to list users: {e}", exc_info=True)
+            return []
+
+    def set_content_policy(self):
+        """Set AAL2 policy on content item."""
+        from c2.pas.aal2.policy import set_aal2_required
+        from c2.pas.aal2.utils.audit import log_aal2_policy_set
+
+        content_path = self.request.form.get('content_path')
+        required = self.request.form.get('required') == 'true'
+
+        if not content_path:
+            api.portal.show_message(
+                message="Content path is required",
+                request=self.request,
+                type='error'
+            )
+            return self.request.response.redirect(self.request.URL)
+
+        try:
+            # Get content object
+            portal = api.portal.get()
+            content = portal.unrestrictedTraverse(content_path)
+
+            # Set policy
+            set_aal2_required(content, required=required)
+
+            # Log the change
+            current_user = api.user.get_current()
+            log_aal2_policy_set(
+                content_path=content_path,
+                required=required,
+                admin_user_id=current_user.getId(),
+                request=self.request
+            )
+
+            action_text = "enabled" if required else "disabled"
+            api.portal.show_message(
+                message=f"AAL2 protection {action_text} for {content_path}",
+                request=self.request,
+                type='info'
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to set AAL2 policy: {e}", exc_info=True)
+            api.portal.show_message(
+                message=f"Error setting AAL2 policy: {str(e)}",
+                request=self.request,
+                type='error'
+            )
+
+        return self.request.response.redirect(self.request.URL)
+
+    def assign_aal2_role(self):
+        """Assign AAL2 Required User role to a user."""
+        from c2.pas.aal2.roles import assign_aal2_role
+        from c2.pas.aal2.utils.audit import log_aal2_role_assigned
+
+        user_id = self.request.form.get('user_id')
+
+        if not user_id:
+            api.portal.show_message(
+                message="User ID is required",
+                request=self.request,
+                type='error'
+            )
+            return self.request.response.redirect(self.request.URL)
+
+        try:
+            portal = api.portal.get()
+            success = assign_aal2_role(user_id, portal)
+
+            if success:
+                # Log the assignment
+                current_user = api.user.get_current()
+                log_aal2_role_assigned(
+                    user_id=user_id,
+                    admin_user_id=current_user.getId(),
+                    request=self.request
+                )
+
+                api.portal.show_message(
+                    message=f"AAL2 Required User role assigned to {user_id}",
+                    request=self.request,
+                    type='info'
+                )
+            else:
+                api.portal.show_message(
+                    message=f"Failed to assign AAL2 role to {user_id}",
+                    request=self.request,
+                    type='error'
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to assign AAL2 role: {e}", exc_info=True)
+            api.portal.show_message(
+                message=f"Error assigning AAL2 role: {str(e)}",
+                request=self.request,
+                type='error'
+            )
+
+        return self.request.response.redirect(self.request.URL)
+
+    def revoke_aal2_role(self):
+        """Revoke AAL2 Required User role from a user."""
+        from c2.pas.aal2.roles import revoke_aal2_role
+        from c2.pas.aal2.utils.audit import log_aal2_role_revoked
+
+        user_id = self.request.form.get('user_id')
+
+        if not user_id:
+            api.portal.show_message(
+                message="User ID is required",
+                request=self.request,
+                type='error'
+            )
+            return self.request.response.redirect(self.request.URL)
+
+        try:
+            portal = api.portal.get()
+            success = revoke_aal2_role(user_id, portal)
+
+            if success:
+                # Log the revocation
+                current_user = api.user.get_current()
+                log_aal2_role_revoked(
+                    user_id=user_id,
+                    admin_user_id=current_user.getId(),
+                    request=self.request
+                )
+
+                api.portal.show_message(
+                    message=f"AAL2 Required User role revoked from {user_id}",
+                    request=self.request,
+                    type='info'
+                )
+            else:
+                api.portal.show_message(
+                    message=f"Failed to revoke AAL2 role from {user_id}",
+                    request=self.request,
+                    type='error'
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to revoke AAL2 role: {e}", exc_info=True)
+            api.portal.show_message(
+                message=f"Error revoking AAL2 role: {str(e)}",
+                request=self.request,
+                type='error'
+            )
+
+        return self.request.response.redirect(self.request.URL)

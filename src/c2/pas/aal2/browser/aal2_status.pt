@@ -1,0 +1,29 @@
+<div class="aal2-status-viewlet"
+     tal:define="is_valid view/is_aal2_valid;
+                 status_class view/get_status_class;
+                 status_message view/get_status_message;
+                 remaining_time view/get_remaining_time"
+     tal:condition="view/available"
+     tal:attributes="class string:aal2-status-viewlet ${status_class}">
+
+  <div class="aal2-status-icon">
+    <span tal:condition="is_valid" class="icon-lock">🔒</span>
+    <span tal:condition="not:is_valid" class="icon-unlock">🔓</span>
+  </div>
+
+  <div class="aal2-status-info">
+    <strong class="aal2-status-label">AAL2 Security Status:</strong>
+    <span class="aal2-status-text" tal:content="status_message">
+      Your secure session status
+    </span>
+  </div>
+
+  <div class="aal2-status-actions" tal:condition="not:is_valid">
+    <a tal:attributes="href view/get_reauthenticate_url"
+       class="aal2-reauth-link button"
+       i18n:translate="button_reauthenticate">
+      Re-authenticate with Passkey
+    </a>
+  </div>
+
+</div>
