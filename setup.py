@@ -49,9 +49,6 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
 
-    # 名前空間パッケージの宣言
-    namespace_packages=['c2', 'c2.pas'],
-
     # ZCMLファイルを含める
     include_package_data=True,
     zip_safe=False,
@@ -84,8 +81,9 @@ setup(
     python_requires='>=3.11',
 
     # エントリーポイント
-    entry_points="""
-    [z3c.autoinclude.plugin]
-    target = plone
-    """,
+    entry_points={
+        'z3c.autoinclude.plugin': [
+            'target = plone',
+        ],
+    },
 )

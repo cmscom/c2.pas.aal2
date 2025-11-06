@@ -183,7 +183,6 @@ wheels = [
 
 [[package]]
 name = "c2-pas-aal2"
-version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "persistent" },

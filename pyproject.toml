@@ -6,30 +6,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c2.pas.aal2"
-version = "1.0.0"
 requires-python = ">=3.11"
-dependencies = [
-    "setuptools",
-    "Plone>=5.2",
-    "Products.PluggableAuthService",
-    "webauthn==2.7.0",
-    "zope.annotation",
-    "zope.session",
-    "persistent",
-]
-
-[project.optional-dependencies]
-test = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
-]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
-    "pytest-xdist>=3.5",
-    "pyright>=1.1",
-    "ruff>=0.8.0,<0.9.0",
-]
+dynamic = ["version", "description", "readme", "authors", "license", "keywords", "classifiers", "urls", "dependencies", "optional-dependencies"]
 
 [tool.setuptools]
 packages = {find = {where = ["src"]}}

@@ -36,7 +36,8 @@
       "Bash(uv run pytest:*)",
       "Bash(uv run:*)",
       "Bash(cat:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(uv sync:*)"
     ],
     "deny": [],
     "ask": []
