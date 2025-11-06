@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Passkey credential storage helpers for ZODB annotations."""
 
-from zope.annotation.interfaces import IAnnotations
-from persistent.dict import PersistentDict
-from datetime import datetime, timezone
 import base64
 import logging
+from datetime import datetime, timezone
+
+from persistent.dict import PersistentDict
+from zope.annotation.interfaces import IAnnotations
 
 logger = logging.getLogger('c2.pas.aal2.credential')
 

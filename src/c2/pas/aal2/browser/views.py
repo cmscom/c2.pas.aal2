@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """Browser views for passkey authentication."""
 
-from Products.Five.browser import BrowserView
-from plone import api
-from webauthn.helpers import options_to_json
-from AccessControl import Unauthorized
 import json
 import logging
+
+from AccessControl import Unauthorized
+from plone import api
+from Products.Five.browser import BrowserView
+from webauthn.helpers import options_to_json
 
 logger = logging.getLogger('c2.pas.aal2.browser.views')
 
@@ -545,8 +546,9 @@ class PasskeyUpdateView(BrowserView):
             member = api.user.get(username=current_user.getId())
 
             # Get and update passkey
-            from c2.pas.aal2.credential import get_passkey, get_user_passkeys
             from zope.annotation.interfaces import IAnnotations
+
+            from c2.pas.aal2.credential import get_passkey, get_user_passkeys
 
             passkey = get_passkey(member, credential_id)
             if passkey is None:
@@ -679,7 +681,7 @@ class AAL2ChallengeView(BrowserView):
         self.user_fullname = current_user.getProperty('fullname', self.username)
 
         # Check AAL2 status
-        from c2.pas.aal2.session import is_aal2_valid, get_aal2_expiry, get_remaining_time
+        from c2.pas.aal2.session import get_aal2_expiry, is_aal2_valid
         self.aal2_valid = is_aal2_valid(current_user)
 
         if self.aal2_valid:

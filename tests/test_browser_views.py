@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Tests for browser views."""
 
-import pytest
 import json
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
+
+import pytest
 
 
 class MockResponse:
@@ -545,8 +546,9 @@ class TestAAL2ExpiryTimeDisplay:
 
     def test_challenge_view_shows_last_authentication_time(self, mock_context):
         """Test that challenge view shows when user last authenticated."""
-        from c2.pas.aal2.browser.views import AAL2ChallengeView
         from datetime import datetime, timedelta
+
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
 
         with patch('c2.pas.aal2.browser.views.api') as mock_api:
             mock_api.user.is_anonymous.return_value = False

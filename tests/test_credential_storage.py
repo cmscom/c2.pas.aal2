@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """Tests for credential storage layer."""
 
+from datetime import datetime
+
 import pytest
-from datetime import datetime, timezone
-from persistent.dict import PersistentDict
-from zope.annotation.interfaces import IAnnotations
 
 
 class MockUser:
@@ -161,11 +160,7 @@ class TestCredentialStorage:
 
     def test_update_passkey_last_used(self, mock_user, mock_annotations):
         """Test updating passkey last_used timestamp and sign count."""
-        from c2.pas.aal2.credential import (
-            add_passkey,
-            get_passkey,
-            update_passkey_last_used
-        )
+        from c2.pas.aal2.credential import add_passkey, get_passkey, update_passkey_last_used
 
         credential_data = {
             'credential_id': b'update_test',
@@ -193,11 +188,7 @@ class TestCredentialStorage:
 
     def test_delete_passkey(self, mock_user, mock_annotations):
         """Test deleting a passkey."""
-        from c2.pas.aal2.credential import (
-            add_passkey,
-            get_passkey,
-            delete_passkey
-        )
+        from c2.pas.aal2.credential import add_passkey, delete_passkey, get_passkey
 
         credential_data = {
             'credential_id': b'delete_test',
@@ -283,8 +274,9 @@ class TestCredentialStorage:
 
     def test_credential_id_base64_encoding(self, mock_user, mock_annotations):
         """Test that credential IDs are properly base64url encoded."""
-        from c2.pas.aal2.credential import add_passkey
         import base64
+
+        from c2.pas.aal2.credential import add_passkey
 
         # Use a credential ID with special characters
         raw_cred_id = b'\x00\x01\x02\xff\xfe\xfd'

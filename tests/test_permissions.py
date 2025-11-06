@@ -46,6 +46,7 @@ class TestAAL2PermissionDefaults:
         """Test that permissions.py follows the correct pattern for default roles."""
         # Read the source code to verify setDefaultRoles is called correctly
         import inspect
+
         import c2.pas.aal2.permissions as permissions_module
 
         source = inspect.getsource(permissions_module)
@@ -89,7 +90,7 @@ class TestPermissionModule:
         assert hasattr(permissions_module, 'RequireAAL2Authentication')
 
         # Check it's the expected type
-        perm = getattr(permissions_module, 'RequireAAL2Authentication')
+        perm = permissions_module.RequireAAL2Authentication
         assert isinstance(perm, str)
 
     def test_module_docstring_exists(self):
@@ -164,6 +165,7 @@ class TestPermissionCompatibility:
         """Test that permission is compatible with CMFCore permission system."""
         try:
             from Products.CMFCore.permissions import setDefaultRoles
+
             from c2.pas.aal2.permissions import RequireAAL2Authentication
 
             # Should be able to call setDefaultRoles without errors

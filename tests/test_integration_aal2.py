@@ -8,8 +8,9 @@ This module tests the complete AAL2 workflow including:
 - Plugin integration
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 @pytest.fixture
@@ -101,7 +102,7 @@ class TestAAL2ProtectionFlow:
 
     def test_aal2_protection_without_requirement(self, mock_content, mock_user, mock_request, mocker):
         """Test accessing content without AAL2 requirement."""
-        from c2.pas.aal2.policy import is_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, is_aal2_required
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -120,8 +121,8 @@ class TestAAL2ProtectionFlow:
 
     def test_aal2_protection_with_requirement_and_valid_auth(self, mock_content, mock_user, mock_request, mocker):
         """Test accessing AAL2-protected content with valid authentication."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
-        from c2.pas.aal2.session import set_aal2_timestamp, is_aal2_valid
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
+        from c2.pas.aal2.session import is_aal2_valid, set_aal2_timestamp
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -146,7 +147,7 @@ class TestAAL2ProtectionFlow:
 
     def test_aal2_protection_with_requirement_and_expired_auth(self, mock_content, mock_user, mock_request, mocker):
         """Test accessing AAL2-protected content with expired authentication."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
         from c2.pas.aal2.session import is_aal2_valid
 
         # Mock IAnnotations
@@ -175,7 +176,7 @@ class TestAAL2ProtectionFlow:
 
     def test_aal2_protection_with_requirement_and_no_auth(self, mock_content, mock_user, mock_request, mocker):
         """Test accessing AAL2-protected content without authentication."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -214,9 +215,9 @@ class TestAAL2StepUpFlow:
     def test_complete_stepup_flow(self, mock_content, mock_user, mock_request, mocker):
         """Test complete step-up authentication flow."""
         from c2.pas.aal2.policy import (
-            set_aal2_required,
             check_aal2_access,
             get_stepup_challenge_url,
+            set_aal2_required,
         )
         from c2.pas.aal2.session import set_aal2_timestamp
 
@@ -253,7 +254,7 @@ class TestAAL2TimeWindow:
 
     def test_access_within_time_window(self, mock_content, mock_user, mock_request, mocker):
         """Test that access is granted within 15-minute window."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
         from c2.pas.aal2.session import set_aal2_timestamp
 
         # Mock IAnnotations
@@ -290,7 +291,7 @@ class TestAAL2TimeWindow:
 
     def test_access_after_time_window(self, mock_content, mock_user, mock_request, mocker):
         """Test that access is denied after 15-minute window."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -315,7 +316,7 @@ class TestAAL2TimeWindow:
 
     def test_reauthentication_resets_window(self, mock_content, mock_user, mock_request, mocker):
         """Test that re-authentication resets the 15-minute window."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
         from c2.pas.aal2.session import set_aal2_timestamp
 
         # Mock IAnnotations
@@ -420,8 +421,9 @@ class TestAAL2ViewsIntegration:
 
     def test_aal2_settings_view_requires_manager(self, mocker):
         """Test that AAL2 settings view requires Manager permission."""
-        from c2.pas.aal2.browser.views import AAL2SettingsView
         from zExceptions import Unauthorized
+
+        from c2.pas.aal2.browser.views import AAL2SettingsView
 
         # Mock user without Manager permission
         mocker.patch('plone.api.user.has_permission', return_value=False)
@@ -528,7 +530,7 @@ class TestAAL2RoleBasedIntegration:
 
     def test_content_and_role_aal2_both_work(self, mock_content, mock_user, mock_request, mocker):
         """Test that both content-based and role-based AAL2 requirements work together."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
         from c2.pas.aal2.roles import has_aal2_role
         from c2.pas.aal2.session import set_aal2_timestamp
 
@@ -738,8 +740,8 @@ class TestAAL2UserFeedbackFlow:
 
     def test_complete_user_feedback_flow_with_clear_messages(self, mock_content, mock_user, mock_request, mocker):
         """Test that user receives clear feedback throughout AAL2 flow."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
         from c2.pas.aal2.browser.views import AAL2ChallengeView
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -783,8 +785,9 @@ class TestAAL2UserFeedbackFlow:
 
     def test_user_sees_expiry_information_on_challenge_page(self, mock_user, mock_request, mocker):
         """Test that user sees when their AAL2 authentication expired."""
-        from c2.pas.aal2.browser.views import AAL2ChallengeView
         from datetime import datetime, timedelta
+
+        from c2.pas.aal2.browser.views import AAL2ChallengeView
 
         # Mock plone.api
         mocker.patch('plone.api.user.is_anonymous', return_value=False)

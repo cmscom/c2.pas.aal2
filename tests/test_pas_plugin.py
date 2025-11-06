@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Tests for PAS plugin integration."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-import json
-from unittest.mock import Mock, MagicMock, patch
 
 
 class MockSession:
@@ -46,6 +46,9 @@ class MockPortal:
 
     def absolute_url(self):
         return self.portal_url
+
+    def Title(self):
+        return 'Test Site'
 
     def getProperty(self, name, default=None):
         if name == 'title':
@@ -106,10 +109,6 @@ class TestPASPluginInterfaces:
 
     def test_plugin_has_required_interfaces(self, mock_plugin):
         """Test that plugin implements required PAS interfaces."""
-        from Products.PluggableAuthService.interfaces.plugins import (
-            IExtractionPlugin,
-            IAuthenticationPlugin
-        )
 
         # Note: In real implementation, these would be registered via ZCML
         # Here we just verify the methods exist
@@ -525,8 +524,9 @@ class TestAAL2Integration:
     @patch('c2.pas.aal2.plugin.IValidationPlugin')
     def test_plugin_implements_validation_interface(self, mock_interface, mock_plugin):
         """Test that plugin implements IValidationPlugin."""
-        from c2.pas.aal2.plugin import AAL2Plugin
         from zope.interface import implementedBy
+
+        from c2.pas.aal2.plugin import AAL2Plugin
 
         # Check that IValidationPlugin is in implemented interfaces
         interfaces = list(implementedBy(AAL2Plugin))

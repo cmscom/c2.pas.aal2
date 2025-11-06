@@ -7,8 +7,9 @@ This module tests the AAL2 role-based policies including:
 - Role assignment and management utilities
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 @pytest.fixture
@@ -289,7 +290,7 @@ class TestRoleBasedIntegration:
     def test_complete_role_based_workflow(self, mock_content, mock_user_with_role, mocker):
         """Test complete workflow for role-based AAL2 enforcement."""
         from c2.pas.aal2.policy import check_aal2_access
-        from c2.pas.aal2.session import set_aal2_timestamp, is_aal2_valid
+        from c2.pas.aal2.session import is_aal2_valid, set_aal2_timestamp
 
         # Mock IAnnotations
         def annotations_factory(obj):
