@@ -28,7 +28,8 @@
       "Bash(pip install:*)",
       "Bash(ruff check:*)",
       "Bash(done)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
