@@ -135,3 +135,85 @@ def log_credential_deleted(user_id, credential_id, request):
         success=True,
         request=request
     )
+
+
+# AAL2-specific audit events
+
+def log_aal2_timestamp_set(user_id, credential_id=None, request=None):
+    """Log AAL2 authentication timestamp being set."""
+    return log_event(
+        event_type='aal2_timestamp_set',
+        user_id=user_id,
+        credential_id=credential_id,
+        success=True,
+        request=request
+    )
+
+
+def log_aal2_access_granted(user_id, content_path, request=None):
+    """Log successful AAL2 access to protected content."""
+    event_data = log_event(
+        event_type='aal2_access_granted',
+        user_id=user_id,
+        success=True,
+        request=request
+    )
+    event_data['content_path'] = content_path
+    logger.info(f"AAL2 access granted: user={user_id} content={content_path}")
+    return event_data
+
+
+def log_aal2_access_denied(user_id, content_path, reason, request=None):
+    """Log AAL2 access denial to protected content."""
+    event_data = log_event(
+        event_type='aal2_access_denied',
+        user_id=user_id,
+        success=False,
+        error_message=reason,
+        request=request
+    )
+    event_data['content_path'] = content_path
+    event_data['denial_reason'] = reason
+    logger.warning(f"AAL2 access denied: user={user_id} content={content_path} reason={reason}")
+    return event_data
+
+
+def log_aal2_policy_set(content_path, required, admin_user_id, request=None):
+    """Log AAL2 policy being set on content."""
+    event_data = log_event(
+        event_type='aal2_policy_set',
+        user_id=admin_user_id,
+        success=True,
+        request=request
+    )
+    event_data['content_path'] = content_path
+    event_data['aal2_required'] = required
+    action = "enabled" if required else "disabled"
+    logger.info(f"AAL2 policy {action}: content={content_path} by={admin_user_id}")
+    return event_data
+
+
+def log_aal2_role_assigned(user_id, admin_user_id, request=None):
+    """Log AAL2 Required User role being assigned."""
+    event_data = log_event(
+        event_type='aal2_role_assigned',
+        user_id=user_id,
+        success=True,
+        request=request
+    )
+    event_data['admin_user_id'] = admin_user_id
+    logger.info(f"AAL2 role assigned: user={user_id} by={admin_user_id}")
+    return event_data
+
+
+def log_aal2_role_revoked(user_id, admin_user_id, request=None):
+    """Log AAL2 Required User role being revoked."""
+    event_data = log_event(
+        event_type='aal2_role_revoked',
+        user_id=user_id,
+        success=True,
+        request=request
+    )
+    event_data['admin_user_id'] = admin_user_id
+    logger.info(f"AAL2 role revoked: user={user_id} by={admin_user_id}")
+    return event_data

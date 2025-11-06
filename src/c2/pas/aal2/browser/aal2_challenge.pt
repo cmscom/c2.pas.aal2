@@ -1,0 +1,310 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="c2.pas.aal2">
+
+<metal:block fill-slot="top_slot">
+  <metal:block tal:define="dummy python:request.set('disable_border', True)" />
+</metal:block>
+
+<metal:content-core fill-slot="content-core">
+  <div id="aal2-challenge-page" class="aal2-challenge">
+
+    <div class="aal2-challenge-header">
+      <h1 class="documentFirstHeading" i18n:translate="heading_aal2_challenge">
+        AAL2 Re-authentication Required
+      </h1>
+    </div>
+
+    <div class="aal2-challenge-body">
+
+      <div class="aal2-challenge-message portalMessage info">
+        <strong i18n:translate="label_security_notice">Security Notice:</strong>
+        <p tal:content="view/get_challenge_message"
+           i18n:translate="message_aal2_challenge">
+          For your security, access to this resource requires recent authentication with your passkey.
+          Please authenticate using your passkey to continue.
+        </p>
+      </div>
+
+      <div class="aal2-user-info">
+        <p>
+          <strong i18n:translate="label_logged_in_as">Logged in as:</strong>
+          <span tal:content="view/user_fullname">John Doe</span>
+          (<span tal:content="view/username">john.doe</span>)
+        </p>
+      </div>
+
+      <div class="aal2-challenge-form">
+        <h2 i18n:translate="heading_authenticate_passkey">Authenticate with Passkey</h2>
+
+        <p i18n:translate="help_aal2_passkey">
+          Touch your fingerprint sensor, insert your security key, or use your device's biometric authentication.
+        </p>
+
+        <div id="aal2-status" class="aal2-status"></div>
+
+        <div class="aal2-challenge-buttons">
+          <button id="authenticate-button"
+                  class="btn btn-primary btn-lg"
+                  type="button"
+                  i18n:translate="button_authenticate">
+            Authenticate with Passkey
+          </button>
+        </div>
+
+        <form id="aal2-verify-form" method="POST" style="display:none;"
+              tal:attributes="action string:${context/portal_url}/@@passkey-login-verify">
+          <input type="hidden" name="credential_response" id="credential-response" />
+          <input type="hidden" name="username" tal:attributes="value view/username" />
+          <input type="hidden" name="came_from" tal:attributes="value view/came_from" />
+        </form>
+      </div>
+
+      <div class="aal2-help-section">
+        <h3 i18n:translate="heading_what_is_aal2">What is AAL2?</h3>
+        <p tal:content="view/get_help_text"
+           i18n:translate="help_aal2_explanation">
+          AAL2 (Authenticator Assurance Level 2) requires you to re-authenticate with your passkey
+          every 15 minutes when accessing protected resources. This ensures the highest level of security
+          for sensitive content.
+        </p>
+
+        <tal:block condition="view/expiry_time">
+          <p>
+            <strong i18n:translate="label_last_authenticated">Last authenticated:</strong>
+            <span tal:content="view/expiry_time">2025-01-06 10:30:00</span>
+          </p>
+        </tal:block>
+      </div>
+
+      <div class="aal2-troubleshooting">
+        <details>
+          <summary i18n:translate="label_troubleshooting">Troubleshooting</summary>
+          <ul>
+            <li i18n:translate="help_no_passkey">
+              If you don't have a passkey registered, please
+              <a tal:attributes="href string:${context/portal_url}/@@passkey-register"
+                 i18n:translate="link_register_passkey">register one</a> first.
+            </li>
+            <li i18n:translate="help_different_device">
+              If you're using a different device, you'll need to authenticate with a passkey
+              registered on this device.
+            </li>
+            <li i18n:translate="help_contact_admin">
+              If you're having issues, please contact your system administrator.
+            </li>
+          </ul>
+        </details>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script type="text/javascript">
+  // AAL2 Challenge JavaScript
+  (function() {
+    'use strict';
+
+    const authenticateButton = document.getElementById('authenticate-button');
+    const statusDiv = document.getElementById('aal2-status');
+    const verifyForm = document.getElementById('aal2-verify-form');
+    const credentialInput = document.getElementById('credential-response');
+    const username = verifyForm.querySelector('[name="username"]').value;
+
+    function showStatus(message, type) {
+      statusDiv.className = 'aal2-status portalMessage ' + type;
+      statusDiv.innerHTML = '<p>' + message + '</p>';
+      statusDiv.style.display = 'block';
+    }
+
+    function showError(message) {
+      showStatus(message, 'error');
+    }
+
+    function showInfo(message) {
+      showStatus(message, 'info');
+    }
+
+    async function startAAL2Authentication() {
+      try {
+        authenticateButton.disabled = true;
+        showInfo('Preparing authentication challenge...');
+
+        // Get authentication options from server
+        const optionsResponse = await fetch('/@@passkey-login-options', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username
+          })
+        });
+
+        if (!optionsResponse.ok) {
+          throw new Error('Failed to get authentication options');
+        }
+
+        const options = await optionsResponse.json();
+
+        if (options.error) {
+          throw new Error(options.message || 'Failed to get authentication options');
+        }
+
+        // Convert base64url strings to Uint8Array
+        options.challenge = Uint8Array.from(
+          atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')),
+          c => c.charCodeAt(0)
+        );
+
+        if (options.allowCredentials) {
+          options.allowCredentials = options.allowCredentials.map(cred => ({
+            ...cred,
+            id: Uint8Array.from(
+              atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')),
+              c => c.charCodeAt(0)
+            )
+          }));
+        }
+
+        showInfo('Please authenticate with your passkey...');
+
+        // Call WebAuthn API
+        const credential = await navigator.credentials.get({
+          publicKey: options
+        });
+
+        showInfo('Processing authentication...');
+
+        // Convert credential to JSON format
+        const credentialJSON = {
+          id: credential.id,
+          rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
+                  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+          type: credential.type,
+          response: {
+            clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON)))
+                             .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+            authenticatorData: btoa(String.fromCharCode(...new Uint8Array(credential.response.authenticatorData)))
+                                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+            signature: btoa(String.fromCharCode(...new Uint8Array(credential.response.signature)))
+                        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+          }
+        };
+
+        // Submit to server
+        credentialInput.value = JSON.stringify(credentialJSON);
+        verifyForm.submit();
+
+      } catch (error) {
+        console.error('AAL2 authentication error:', error);
+        authenticateButton.disabled = false;
+
+        if (error.name === 'NotAllowedError') {
+          showError('Authentication was cancelled. Please try again.');
+        } else if (error.name === 'InvalidStateError') {
+          showError('No passkey found for this account. Please register a passkey first.');
+        } else {
+          showError('Authentication failed: ' + error.message);
+        }
+      }
+    }
+
+    // Event listeners
+    authenticateButton.addEventListener('click', startAAL2Authentication);
+
+    // Check for WebAuthn support
+    if (!window.PublicKeyCredential) {
+      showError('Your browser does not support WebAuthn/Passkeys. Please use a modern browser.');
+      authenticateButton.disabled = true;
+    }
+
+  })();
+  </script>
+
+  <style type="text/css">
+  /* AAL2 Challenge Styles */
+  .aal2-challenge {
+    max-width: 800px;
+    margin: 2em auto;
+    padding: 2em;
+  }
+
+  .aal2-challenge-header {
+    text-align: center;
+    margin-bottom: 2em;
+  }
+
+  .aal2-challenge-message {
+    margin-bottom: 2em;
+    padding: 1.5em;
+    border-radius: 4px;
+  }
+
+  .aal2-user-info {
+    background: #f5f5f5;
+    padding: 1em;
+    border-radius: 4px;
+    margin-bottom: 2em;
+  }
+
+  .aal2-challenge-form {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 2em;
+    border-radius: 4px;
+    margin-bottom: 2em;
+  }
+
+  .aal2-challenge-form h2 {
+    margin-top: 0;
+  }
+
+  .aal2-challenge-buttons {
+    text-align: center;
+    margin: 2em 0;
+  }
+
+  .aal2-challenge-buttons .btn {
+    font-size: 1.2em;
+    padding: 0.75em 2em;
+  }
+
+  .aal2-status {
+    margin: 1em 0;
+    display: none;
+  }
+
+  .aal2-help-section {
+    background: #f9f9f9;
+    padding: 1.5em;
+    border-radius: 4px;
+    margin-bottom: 1em;
+  }
+
+  .aal2-help-section h3 {
+    margin-top: 0;
+  }
+
+  .aal2-troubleshooting {
+    margin-top: 2em;
+  }
+
+  .aal2-troubleshooting summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.5em 0;
+  }
+
+  .aal2-troubleshooting ul {
+    margin-top: 1em;
+  }
+  </style>
+
+</metal:content-core>
+
+</html>

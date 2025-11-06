@@ -9,12 +9,14 @@ from zope.interface import implementer
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
 from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
+from Products.PluggableAuthService.interfaces.plugins import IValidationPlugin
 from zope.session.interfaces import ISession
-import secrets
 import logging
 
 from c2.pas.aal2.interfaces import IAAL2Plugin
 from c2.pas.aal2.credential import get_user_passkeys, get_passkey
+from c2.pas.aal2.session import set_aal2_timestamp, is_aal2_valid
+from c2.pas.aal2.policy import is_aal2_required
 from c2.pas.aal2.utils.webauthn import (
     create_registration_options,
     verify_registration,
@@ -33,7 +35,7 @@ from c2.pas.aal2.utils.audit import (
 logger = logging.getLogger('c2.pas.aal2.plugin')
 
 
-@implementer(IAuthenticationPlugin, IExtractionPlugin, IAAL2Plugin)
+@implementer(IAuthenticationPlugin, IExtractionPlugin, IValidationPlugin, IAAL2Plugin)
 class AAL2Plugin(BasePlugin):
     """AAL2 Authentication Plugin for Plone PAS.
 
@@ -161,45 +163,120 @@ class AAL2Plugin(BasePlugin):
             # Fallback: try to get from acquisition chain
             return self.acl_users
 
+    # IValidationPlugin implementation
+    def validate(self, user, request):
+        """Validate AAL2 requirements for the current request.
+
+        This method is called by PAS during request processing to validate
+        whether the authenticated user meets AAL2 requirements for the
+        requested resource.
+
+        Args:
+            user: Plone user object
+            request: HTTP request object
+
+        Returns:
+            bool: True if validation passes, raises Unauthorized if AAL2 needed
+
+        Raises:
+            Unauthorized: If AAL2 is required but not satisfied
+        """
+        from c2.pas.aal2.policy import check_aal2_access
+
+        try:
+            # Get the published object from the request
+            published = request.get('PUBLISHED')
+            if published is None:
+                # No published object yet, allow
+                return True
+
+            # Get context from published object
+            context = getattr(published, 'context', None)
+            if context is None:
+                # No context available, allow
+                return True
+
+            # Check AAL2 access
+            if not check_aal2_access(context, user, request):
+                # AAL2 required but not satisfied
+                from AccessControl import Unauthorized
+                logger.info(f"AAL2 validation failed for user {user.getId()} accessing {context.getId()}")
+                raise Unauthorized("AAL2 authentication required")
+
+            return True
+
+        except Unauthorized:
+            # Re-raise Unauthorized
+            raise
+        except Exception as e:
+            logger.error(f"Error in AAL2 validation: {e}", exc_info=True)
+            # On error, allow access (fail open for non-AAL2 critical errors)
+            return True
+
     # IAAL2Plugin implementation
     def get_aal_level(self, user_id):
         """Get the current AAL level for a user.
 
-        This stub implementation always returns 1 (lowest assurance level).
+        This implementation checks if the user has a valid AAL2 authentication
+        timestamp (within 15 minutes) from passkey authentication.
 
         Args:
             user_id (str): The user identifier
 
         Returns:
-            int: Always returns 1 in stub implementation
+            int: 1 (basic authentication) or 2 (AAL2 authentication with passkey)
 
-        Future Implementation:
-            - Check user's authentication method
-            - Verify 2FA status
-            - Check session authentication timestamp
-            - Return actual AAL level (1, 2, or 3)
+        Example:
+            >>> plugin.get_aal_level('john_doe')
+            2  # User authenticated with passkey within last 15 minutes
         """
-        return 1
+        try:
+            acl_users = self._get_acl_users()
+            user = acl_users.getUserById(user_id)
+
+            if user is None:
+                return 1
+
+            # Check if user has valid AAL2 authentication
+            if is_aal2_valid(user):
+                return 2
+
+            return 1
+
+        except Exception as e:
+            logger.error(f"Failed to get AAL level for user {user_id}: {e}", exc_info=True)
+            return 1
 
     def require_aal2(self, user_id, context):
-        """Determine if AAL2 is required for the given context.
+        """Determine if AAL2 is required for the given user and context.
 
-        This stub implementation always returns False (no AAL2 requirement).
+        This implementation checks both content-level and user-level AAL2 policies.
 
         Args:
             user_id (str): The user identifier
-            context (object): The Plone content object
+            context (object): The Plone content object being accessed
 
         Returns:
-            bool: Always returns False in stub implementation
+            bool: True if AAL2 is required for this context/user combination
 
-        Future Implementation:
-            - Check content annotations for AAL2 policy
-            - Verify user's current AAL level
-            - Trigger step-up authentication if needed
-            - Return True if AAL2 is required but not met
+        Example:
+            >>> plugin.require_aal2('john_doe', protected_content)
+            True  # Content requires AAL2 authentication
         """
-        return False
+        try:
+            acl_users = self._get_acl_users()
+            user = acl_users.getUserById(user_id)
+
+            if user is None:
+                logger.warning(f"User not found: {user_id}")
+                return False
+
+            # Check if AAL2 is required for this context
+            return is_aal2_required(context, user)
+
+        except Exception as e:
+            logger.error(f"Failed to check AAL2 requirement for user {user_id}: {e}", exc_info=True)
+            return False
 
     # Passkey Authentication Methods (WebAuthn)
 
@@ -283,7 +360,6 @@ class AAL2Plugin(BasePlugin):
                 raise ValueError("No registration challenge found in session")
 
             # Get site configuration
-            portal = self._get_portal(request)
             rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
             expected_origin = f"https://{rp_id}"
             if 'localhost' in rp_id or '127.0.0.1' in rp_id:
@@ -341,7 +417,6 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Get site configuration
-            portal = self._get_portal(request)
             rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
 
             # Get allowed credentials for this user
@@ -457,6 +532,10 @@ class AAL2Plugin(BasePlugin):
                 credential_id,
                 verification.new_sign_count
             )
+
+            # Set AAL2 authentication timestamp (for AAL2 compliance)
+            set_aal2_timestamp(authenticated_user, credential_id=credential_id)
+            logger.info(f"Set AAL2 timestamp for user {authenticated_user.getId()}")
 
             # Clear session challenge
             session_data.pop('authentication_challenge', None)
