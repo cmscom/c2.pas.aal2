@@ -319,7 +319,8 @@ class PasskeyLoginVerifyView(BrowserView):
             # handle authentication state management (including cookies).
             from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
-            # Find and call any ICredentialsUpdatePlugin to set authentication cookie
+            # Find and call session plugin to set authentication cookie
+            # For plone.session, we need to create a proper login ticket
             cookie_auth_set = False
             try:
                 plugin_list = list(acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin))
@@ -327,12 +328,22 @@ class PasskeyLoginVerifyView(BrowserView):
 
                 for plugin_name in plugin_list:
                     plugin = acl_users[plugin_name]
+                    logger.info(f"Trying plugin: {plugin_name}, type: {type(plugin)}")
+
                     try:
-                        # Call updateCredentials with username (password not needed for passkey)
-                        plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                        logger.info(f"Set authentication cookie via plugin: {plugin_name}")
+                        # For plone.session plugin, we need to set credentials in request first
+                        if plugin_name == 'session' or 'session' in plugin_name.lower():
+                            # Set login name and password in request for session plugin
+                            # Session plugin expects these to be set
+                            self.request.form['__ac_name'] = user_id
+                            self.request.form['__ac_password'] = user_id  # Use user_id as token
+                            self.request['__ac_name'] = user_id
+                            self.request['__ac_password'] = user_id
+
+                        # Call updateCredentials
+                        plugin.updateCredentials(self.request, self.request.response, user_id, user_id)
+                        logger.info(f"Successfully set authentication cookie via plugin: {plugin_name}")
                         cookie_auth_set = True
-                        # Don't break - call all plugins to ensure cookies are set
                     except Exception as e:
                         logger.warning(f"Failed to set cookie via {plugin_name}: {e}", exc_info=True)
             except Exception as e:
