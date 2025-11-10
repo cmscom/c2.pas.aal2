@@ -137,7 +137,7 @@ def create_authentication_options(rp_id, allow_credentials=None, user_verificati
         options = generate_authentication_options(
             rp_id=rp_id,
             allow_credentials=allowed_creds if allowed_creds else None,
-            user_verification=UserVerificationRequirement(user_verification.upper()),
+            user_verification=UserVerificationRequirement(user_verification),
             timeout=60000,  # 60 seconds
         )
 
