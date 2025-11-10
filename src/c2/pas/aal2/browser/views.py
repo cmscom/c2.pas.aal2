@@ -308,35 +308,32 @@ class PasskeyLoginVerifyView(BrowserView):
             if user is None:
                 raise ValueError("User not found after verification")
 
-            # Create authenticated session using Plone's session management
+            # Create authenticated session
+            # Use PAS to establish login session properly
             from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
-            # Get the session plugin
-            session_plugin = None
+            # Set login credentials in request for PAS to process
+            self.request.form['__ac_name'] = user_id
+            self.request.form['__ac_password'] = ''
+
+            # Call all ICredentialsUpdatePlugin plugins
             try:
                 for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
-                    plugin = acl_users[plugin_name]  # Access plugin from acl_users directly
-                    if hasattr(plugin, 'createTicket') or 'session' in plugin_name.lower():
-                        session_plugin = plugin
-                        break
-
-                if session_plugin and hasattr(session_plugin, 'createTicket'):
-                    # Use plone.session to create ticket
-                    ticket = session_plugin.createTicket(user_id)
-                    session_plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                    logger.info(f"Created session ticket for user {user_id}")
-                else:
-                    # Fallback: set credentials directly for all update plugins
-                    for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
-                        plugin = acl_users[plugin_name]  # Access plugin from acl_users directly
-                        if hasattr(plugin, 'updateCredentials'):
-                            try:
-                                plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                                logger.info(f"Updated credentials via plugin: {plugin_name}")
-                            except Exception as e:
-                                logger.warning(f"Plugin {plugin_name} failed: {e}")
+                    plugin = acl_users[plugin_name]
+                    if hasattr(plugin, 'updateCredentials'):
+                        try:
+                            plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                            logger.info(f"Updated credentials via plugin: {plugin_name}")
+                        except Exception as e:
+                            logger.warning(f"Plugin {plugin_name} updateCredentials failed: {e}")
             except Exception as e:
                 logger.error(f"Failed to update credentials: {e}", exc_info=True)
+
+            # Also set the AUTHENTICATED_USER in session for immediate effect
+            # This ensures the user is logged in for this request
+            from AccessControl.SecurityManagement import newSecurityManager
+            newSecurityManager(self.request, user)
+            logger.info(f"Set security context for user {user_id}")
 
             # Get redirect URL (typically portal URL)
             portal = api.portal.get()
@@ -345,7 +342,10 @@ class PasskeyLoginVerifyView(BrowserView):
             # Check if there's a came_from parameter
             came_from = self.request.get('came_from', redirect_url)
 
+            # Return JSON with redirect URL
+            # JavaScript will handle the redirect
             self.request.response.setHeader('Content-Type', 'application/json')
+            logger.info(f"Authentication successful for user {user_id}, will redirect to {came_from}")
             return json.dumps({
                 'success': True,
                 'user_id': user_id,
