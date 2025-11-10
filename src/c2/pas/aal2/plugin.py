@@ -759,7 +759,18 @@ class AAL2Plugin(BasePlugin):
                 if session_plugin:
                     if hasattr(session_plugin, 'secret'):
                         secret = session_plugin.secret
-                    logger.info(f"Session plugin found, secret length: {len(secret) if secret else 0}")
+
+                    # If no secret, generate one and set it
+                    if not secret:
+                        import secrets
+                        secret = secrets.token_hex(32)  # 64 character hex string
+                        try:
+                            session_plugin.secret = secret
+                            logger.info(f"Generated and set new secret for session plugin (length: {len(secret)})")
+                        except Exception as e:
+                            logger.error(f"Failed to set secret: {e}")
+                    else:
+                        logger.info(f"Session plugin found, secret length: {len(secret)}")
                 else:
                     logger.warning("Session plugin not found in acl_users")
 
