@@ -319,26 +319,27 @@ class PasskeyLoginVerifyView(BrowserView):
             # handle authentication state management (including cookies).
             from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
-            # Find and call cookie_authentication plugin
+            # Find and call any ICredentialsUpdatePlugin to set authentication cookie
             cookie_auth_set = False
             try:
-                for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
+                plugin_list = list(acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin))
+                logger.info(f"Available ICredentialsUpdatePlugin plugins: {plugin_list}")
+
+                for plugin_name in plugin_list:
                     plugin = acl_users[plugin_name]
-                    # Look for cookie_authentication or similar plugin
-                    if 'cookie' in plugin_name.lower() or hasattr(plugin, 'getCookie'):
-                        try:
-                            # Call updateCredentials with username (password not needed for passkey)
-                            plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                            logger.info(f"Set authentication cookie via plugin: {plugin_name}")
-                            cookie_auth_set = True
-                            break
-                        except Exception as e:
-                            logger.warning(f"Failed to set cookie via {plugin_name}: {e}")
+                    try:
+                        # Call updateCredentials with username (password not needed for passkey)
+                        plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                        logger.info(f"Set authentication cookie via plugin: {plugin_name}")
+                        cookie_auth_set = True
+                        # Don't break - call all plugins to ensure cookies are set
+                    except Exception as e:
+                        logger.warning(f"Failed to set cookie via {plugin_name}: {e}", exc_info=True)
             except Exception as e:
                 logger.error(f"Error setting authentication cookie: {e}", exc_info=True)
 
             if not cookie_auth_set:
-                logger.warning("No cookie authentication plugin found - session may not persist")
+                logger.warning("No ICredentialsUpdatePlugin successfully set cookies - session may not persist")
 
             # Also set the AUTHENTICATED_USER in current request context
             from AccessControl.SecurityManagement import newSecurityManager
