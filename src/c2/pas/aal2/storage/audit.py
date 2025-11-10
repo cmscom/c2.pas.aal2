@@ -183,19 +183,25 @@ class AuditLogContainer(Persistent):
         self.events[timestamp_key] = event
 
         # Update user index
+        # Use event_id (UUID string) as value, integer timestamp as key
+        # To avoid IOBTree 32-bit overflow, use seconds since 2020-01-01 as base
+        # This gives us ~68 years before overflow (2020 + 68 = 2088)
+        base_timestamp = 1577836800  # 2020-01-01 00:00:00 UTC
+        index_key = int(timestamp_key - base_timestamp)
+
         if event.user_id not in self.by_user:
             self.by_user[event.user_id] = IOBTree()
-        self.by_user[event.user_id][int(timestamp_key * 1000000)] = event.event_id
+        self.by_user[event.user_id][index_key] = event.event_id
 
         # Update action index
         if event.action_type not in self.by_action:
             self.by_action[event.action_type] = IOBTree()
-        self.by_action[event.action_type][int(timestamp_key * 1000000)] = event.event_id
+        self.by_action[event.action_type][index_key] = event.event_id
 
         # Update outcome index
         if event.outcome not in self.by_outcome:
             self.by_outcome[event.outcome] = IOBTree()
-        self.by_outcome[event.outcome][int(timestamp_key * 1000000)] = event.event_id
+        self.by_outcome[event.outcome][index_key] = event.event_id
 
         # Update metadata
         self.metadata['total_events'] += 1

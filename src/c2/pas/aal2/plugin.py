@@ -564,6 +564,11 @@ class AAL2Plugin(BasePlugin):
     def _get_portal(self, request):
         """Helper method to get portal object from request."""
         try:
-            return request.PARENTS[-1]
-        except (AttributeError, IndexError):
-            return None
+            from plone import api
+            return api.portal.get()
+        except Exception:
+            # Fallback to request traversal
+            try:
+                return request.PARENTS[-1]
+            except (AttributeError, IndexError):
+                return None
