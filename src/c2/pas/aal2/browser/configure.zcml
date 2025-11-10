@@ -3,6 +3,12 @@
     xmlns:browser="http://namespaces.zope.org/browser"
     i18n_domain="c2.pas.aal2">
 
+  <!-- Register static resource directory for JavaScript, CSS, etc. -->
+  <browser:resourceDirectory
+      name="c2.pas.aal2"
+      directory="static"
+      />
+
   <!-- Passkey Registration Views -->
   <browser:page
       name="passkey-register-options"
@@ -123,6 +129,35 @@
       for="*"
       class=".views.AAL2SettingsView"
       template="aal2_settings.pt"
+      permission="cmf.ManagePortal"
+      />
+
+  <!-- Audit Log API Views (Feature 005: US2) -->
+  <browser:page
+      name="audit-log-query"
+      for="*"
+      class=".audit_views.AuditLogQueryView"
+      permission="cmf.ManagePortal"
+      />
+
+  <browser:page
+      name="audit-log-export"
+      for="*"
+      class=".audit_views.AuditLogExportView"
+      permission="cmf.ManagePortal"
+      />
+
+  <browser:page
+      name="audit-log-stats"
+      for="*"
+      class=".audit_views.AuditLogStatsView"
+      permission="cmf.ManagePortal"
+      />
+
+  <browser:page
+      name="audit-log-cleanup"
+      for="*"
+      class=".audit_views.AuditLogCleanupView"
       permission="cmf.ManagePortal"
       />
 

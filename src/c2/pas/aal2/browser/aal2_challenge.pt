@@ -104,127 +104,7 @@
 
   </div>
 
-  <script type="text/javascript">
-  // AAL2 Challenge JavaScript
-  (function() {
-    'use strict';
 
-    const authenticateButton = document.getElementById('authenticate-button');
-    const statusDiv = document.getElementById('aal2-status');
-    const verifyForm = document.getElementById('aal2-verify-form');
-    const credentialInput = document.getElementById('credential-response');
-    const username = verifyForm.querySelector('[name="username"]').value;
-
-    function showStatus(message, type) {
-      statusDiv.className = 'aal2-status portalMessage ' + type;
-      statusDiv.innerHTML = '<p>' + message + '</p>';
-      statusDiv.style.display = 'block';
-    }
-
-    function showError(message) {
-      showStatus(message, 'error');
-    }
-
-    function showInfo(message) {
-      showStatus(message, 'info');
-    }
-
-    async function startAAL2Authentication() {
-      try {
-        authenticateButton.disabled = true;
-        showInfo('Preparing authentication challenge...');
-
-        // Get authentication options from server
-        const optionsResponse = await fetch('/@@passkey-login-options', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: username
-          })
-        });
-
-        if (!optionsResponse.ok) {
-          throw new Error('Failed to get authentication options');
-        }
-
-        const options = await optionsResponse.json();
-
-        if (options.error) {
-          throw new Error(options.message || 'Failed to get authentication options');
-        }
-
-        // Convert base64url strings to Uint8Array
-        options.challenge = Uint8Array.from(
-          atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')),
-          c => c.charCodeAt(0)
-        );
-
-        if (options.allowCredentials) {
-          options.allowCredentials = options.allowCredentials.map(cred => ({
-            ...cred,
-            id: Uint8Array.from(
-              atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')),
-              c => c.charCodeAt(0)
-            )
-          }));
-        }
-
-        showInfo('Please authenticate with your passkey...');
-
-        // Call WebAuthn API
-        const credential = await navigator.credentials.get({
-          publicKey: options
-        });
-
-        showInfo('Processing authentication...');
-
-        // Convert credential to JSON format
-        const credentialJSON = {
-          id: credential.id,
-          rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
-                  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
-          type: credential.type,
-          response: {
-            clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON)))
-                             .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
-            authenticatorData: btoa(String.fromCharCode(...new Uint8Array(credential.response.authenticatorData)))
-                                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
-            signature: btoa(String.fromCharCode(...new Uint8Array(credential.response.signature)))
-                        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-          }
-        };
-
-        // Submit to server
-        credentialInput.value = JSON.stringify(credentialJSON);
-        verifyForm.submit();
-
-      } catch (error) {
-        console.error('AAL2 authentication error:', error);
-        authenticateButton.disabled = false;
-
-        if (error.name === 'NotAllowedError') {
-          showError('Authentication was cancelled. Please try again.');
-        } else if (error.name === 'InvalidStateError') {
-          showError('No passkey found for this account. Please register a passkey first.');
-        } else {
-          showError('Authentication failed: ' + error.message);
-        }
-      }
-    }
-
-    // Event listeners
-    authenticateButton.addEventListener('click', startAAL2Authentication);
-
-    // Check for WebAuthn support
-    if (!window.PublicKeyCredential) {
-      showError('Your browser does not support WebAuthn/Passkeys. Please use a modern browser.');
-      authenticateButton.disabled = true;
-    }
-
-  })();
-  </script>
 
   <style type="text/css">
   /* AAL2 Challenge Styles */
@@ -304,6 +184,19 @@
     margin-top: 1em;
   }
   </style>
+
+  <metal:javascript fill-slot="javascript_head_slot">
+    <!-- Load WebAuthn JavaScript modules -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-utils.js"></script>
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-aal2.js"></script>
+
+    <!-- Initialize AAL2 challenge -->
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        initAAL2Challenge();
+      });
+    </script>
+  </metal:javascript>
 
 </metal:content-core>
 

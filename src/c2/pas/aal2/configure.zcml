@@ -23,6 +23,10 @@
   <!-- Include dependent configurations if needed -->
   <include package="Products.PluggableAuthService" />
   <include package="Products.GenericSetup" file="meta.zcml" />
+  <include package="Products.Five" file="meta.zcml" />
+
+  <!-- Include browser configuration -->
+  <include package=".browser" />
 
   <!-- Register GenericSetup profile for AAL2 installation -->
   <genericsetup:registerProfile

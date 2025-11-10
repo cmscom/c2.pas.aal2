@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<object name="portal_javascripts">
+
+  <!-- Base utilities - load first -->
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-utils.js"
+              cacheable="True"
+              compression="safe"
+              cookable="True"
+              enabled="True"
+              inline="False"
+              insert-after="*"/>
+
+  <!-- Registration flow - depends on utils -->
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-register.js"
+              cacheable="True"
+              compression="safe"
+              cookable="True"
+              enabled="True"
+              inline="False"
+              insert-after="++resource++c2.pas.aal2/js/webauthn-utils.js"/>
+
+  <!-- Login flow - depends on utils -->
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-login.js"
+              cacheable="True"
+              compression="safe"
+              cookable="True"
+              enabled="True"
+              inline="False"
+              insert-after="++resource++c2.pas.aal2/js/webauthn-utils.js"/>
+
+  <!-- AAL2 challenge - depends on utils -->
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-aal2.js"
+              cacheable="True"
+              compression="safe"
+              cookable="True"
+              enabled="True"
+              inline="False"
+              insert-after="++resource++c2.pas.aal2/js/webauthn-utils.js"/>
+
+  <!-- Management UI - depends on utils -->
+  <javascript id="++resource++c2.pas.aal2/js/passkey-management.js"
+              cacheable="True"
+              compression="safe"
+              cookable="True"
+              enabled="True"
+              inline="False"
+              insert-after="++resource++c2.pas.aal2/js/webauthn-utils.js"/>
+
+</object>

@@ -1,0 +1,32 @@
+# Baseline JavaScript Documentation
+# Feature 005 - JavaScript Externalization
+# Date: 2025-11-10
+
+This file documents the inline JavaScript that exists in templates before externalization.
+
+## Templates with Inline JavaScript:
+
+1. src/c2/pas/aal2/browser/templates/register_passkey.pt
+   - Lines 79-219: WebAuthn registration flow
+   - Functions: base64urlDecode, base64urlEncode, registration event handler
+   
+2. src/c2/pas/aal2/browser/templates/login_with_passkey.pt
+   - Inline JS: WebAuthn login flow
+   - Functions: authentication flow, base64 helpers
+
+3. src/c2/pas/aal2/browser/templates/enhanced_login.pt
+   - Inline JS: Combined login with toggle
+   - Functions: showPasswordForm, showPasskeyForm, login flow
+
+4. src/c2/pas/aal2/browser/aal2_challenge.pt
+   - Inline JS: AAL2 step-up authentication
+   - Functions: startAAL2Authentication, status display
+
+5. src/c2/pas/aal2/browser/templates/manage_passkeys.pt
+   - Inline JS: Passkey management UI
+   - Functions: loadPasskeys, deletePasskey, editDeviceName, updateDeviceName
+
+## Expected Result After Externalization:
+- All inline JavaScript moved to external .js files in browser/static/js/
+- Templates only contain initialization calls (e.g., initPasskeyRegistration())
+- All WebAuthn functionality works identically

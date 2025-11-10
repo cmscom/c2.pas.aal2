@@ -77,144 +77,15 @@
   </metal:content-core>
 
   <metal:javascript fill-slot="javascript_head_slot">
-    <script type="text/javascript" tal:content="structure string:
-      // Base64url encoding/decoding helpers
-      function base64urlDecode(input) {
-        input = input.replace(/-/g, '+').replace(/_/g, '/');
-        const pad = input.length % 4;
-        if (pad) {
-          if (pad === 1) {
-            throw new Error('Invalid base64url string');
-          }
-          input += new Array(5 - pad).join('=');
-        }
-        const base64 = atob(input);
-        const bytes = new Uint8Array(base64.length);
-        for (let i = 0; i < base64.length; i++) {
-          bytes[i] = base64.charCodeAt(i);
-        }
-        return bytes.buffer;
-      }
+    <!-- Load WebAuthn JavaScript modules -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-utils.js"></script>
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-register.js"></script>
 
-      function base64urlEncode(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-        return base64.replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');
-      }
-
-      // Check browser support
-      if (!window.PublicKeyCredential) {
-        document.getElementById('browser-support-warning').style.display = 'block';
-        document.getElementById('register-passkey-form').style.display = 'none';
-      }
-
-      // Register passkey
-      document.getElementById('register-button').addEventListener('click', async function() {
-        const deviceName = document.getElementById('device-name').value;
-        const authenticatorType = document.getElementById('authenticator-type').value;
-
-        const errorDiv = document.getElementById('passkey-error');
-        const successDiv = document.getElementById('passkey-success');
-        const infoDiv = document.getElementById('passkey-register-form');
-
-        errorDiv.style.display = 'none';
-        successDiv.style.display = 'none';
-        infoDiv.style.display = 'none';
-
-        try {
-          // Step 1: Get registration options from server
-          const optionsResponse = await fetch('@@passkey-register-options', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              device_name: deviceName,
-              authenticator_attachment: authenticatorType || null
-            })
-          });
-
-          if (!optionsResponse.ok) {
-            const error = await optionsResponse.json();
-            throw new Error(error.message || 'Failed to get registration options');
-          }
-
-          const optionsData = await optionsResponse.json();
-          const options = optionsData.publicKey;
-
-          // Decode base64url fields
-          options.challenge = base64urlDecode(options.challenge);
-          options.user.id = base64urlDecode(options.user.id);
-          if (options.excludeCredentials) {
-            options.excludeCredentials = options.excludeCredentials.map(cred => ({
-              ...cred,
-              id: base64urlDecode(cred.id)
-            }));
-          }
-
-          // Show info message
-          infoDiv.style.display = 'block';
-
-          // Step 2: Call WebAuthn API
-          const credential = await navigator.credentials.create({
-            publicKey: options
-          });
-
-          // Hide info message
-          infoDiv.style.display = 'none';
-
-          // Step 3: Send credential to server for verification
-          const verifyResponse = await fetch('@@passkey-register-verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              credential: {
-                id: credential.id,
-                rawId: base64urlEncode(credential.rawId),
-                type: credential.type,
-                response: {
-                  clientDataJSON: base64urlEncode(credential.response.clientDataJSON),
-                  attestationObject: base64urlEncode(credential.response.attestationObject)
-                },
-                transports: credential.response.getTransports ? credential.response.getTransports() : []
-              },
-              device_name: deviceName
-            })
-          });
-
-          if (!verifyResponse.ok) {
-            const error = await verifyResponse.json();
-            throw new Error(error.message || 'Verification failed');
-          }
-
-          const result = await verifyResponse.json();
-
-          // Success!
-          successDiv.innerHTML = '<strong>Success!</strong> Your passkey has been registered. You can now use it to log in.';
-          successDiv.style.display = 'block';
-
-          // Clear form
-          document.getElementById('device-name').value = '';
-
-          // Redirect after 2 seconds
-          setTimeout(function() {
-            window.location.href = '@@personal-information';
-          }, 2000);
-
-        } catch (error) {
-          console.error('Passkey registration error:', error);
-          errorDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
-          errorDiv.style.display = 'block';
-          infoDiv.style.display = 'none';
-        }
+    <!-- Initialize passkey registration -->
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        initPasskeyRegistration();
       });
-    ">
     </script>
   </metal:javascript>
 

@@ -705,3 +705,165 @@ class TestAAL2StatusViewlet:
                 assert hasattr(viewlet, 'available') or hasattr(viewlet, 'render')
         except ImportError:
             pytest.fail("AAL2StatusViewlet not yet implemented")
+
+
+class TestJavaScriptExternalization:
+    """Tests for JavaScript externalization (US1/Feature 005)."""
+
+    def test_javascript_externalization(self):
+        """Test that templates have no inline JavaScript code."""
+        import os
+        import re
+
+        # Template files to check
+        template_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'src', 'c2', 'pas', 'aal2', 'browser', 'templates'
+        )
+
+        templates = [
+            'register_passkey.pt',
+            'login_with_passkey.pt',
+            'enhanced_login.pt',
+            'manage_passkeys.pt',
+        ]
+
+        # Also check aal2_challenge.pt in browser directory
+        browser_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'src', 'c2', 'pas', 'aal2', 'browser'
+        )
+
+        # Pattern to detect inline JavaScript (excluding simple init calls)
+        # We allow short initialization scripts, but not complex logic
+        inline_js_pattern = re.compile(
+            r'<script[^>]*>.*?(function|const|let|var|async|await|fetch|if|for|while).*?</script>',
+            re.DOTALL | re.IGNORECASE
+        )
+
+        # Allowed pattern: simple DOMContentLoaded with single function call
+        allowed_init_pattern = re.compile(
+            r'<script[^>]*>\s*document\.addEventListener\([\'"]DOMContentLoaded[\'"],\s*function\(\)\s*\{\s*init\w+\([^\)]*\);\s*\}\);\s*</script>',
+            re.DOTALL
+        )
+
+        for template in templates:
+            template_path = os.path.join(template_dir, template)
+            if not os.path.exists(template_path):
+                continue
+
+            with open(template_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Find all script tags
+            matches = inline_js_pattern.findall(content)
+
+            # Filter out allowed initialization patterns
+            disallowed_scripts = []
+            for match in matches:
+                # Check if this is just an init call
+                if not allowed_init_pattern.search(content):
+                    # Check if it contains actual logic
+                    if any(keyword in match.lower() for keyword in
+                           ['function ', 'const ', 'let ', 'var ', 'async ', 'fetch(', 'if ', 'for ', 'while ']):
+                        disallowed_scripts.append(match[:100])  # First 100 chars for debugging
+
+            assert len(disallowed_scripts) == 0, \
+                f"{template} contains inline JavaScript logic: {disallowed_scripts}"
+
+        # Check aal2_challenge.pt
+        challenge_path = os.path.join(browser_dir, 'aal2_challenge.pt')
+        if os.path.exists(challenge_path):
+            with open(challenge_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            matches = inline_js_pattern.findall(content)
+            disallowed_scripts = []
+            for match in matches:
+                if not allowed_init_pattern.search(content):
+                    if any(keyword in match.lower() for keyword in
+                           ['function ', 'const ', 'let ', 'var ', 'async ', 'fetch(', 'if ', 'for ', 'while ']):
+                        disallowed_scripts.append(match[:100])
+
+            assert len(disallowed_scripts) == 0, \
+                f"aal2_challenge.pt contains inline JavaScript logic: {disallowed_scripts}"
+
+    def test_javascript_resources_configured(self):
+        """Test that JavaScript resources are configured in jsregistry.xml."""
+        import os
+        import xml.etree.ElementTree as ET
+
+        jsregistry_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'src', 'c2', 'pas', 'aal2', 'profiles', 'default', 'jsregistry.xml'
+        )
+
+        assert os.path.exists(jsregistry_path), "jsregistry.xml not found"
+
+        tree = ET.parse(jsregistry_path)
+        root = tree.getroot()
+
+        # Expected JavaScript files
+        expected_resources = [
+            '++resource++c2.pas.aal2/js/webauthn-utils.js',
+            '++resource++c2.pas.aal2/js/webauthn-register.js',
+            '++resource++c2.pas.aal2/js/webauthn-login.js',
+            '++resource++c2.pas.aal2/js/webauthn-aal2.js',
+            '++resource++c2.pas.aal2/js/passkey-management.js',
+        ]
+
+        # Find all javascript elements
+        js_elements = root.findall('.//javascript')
+        registered_ids = [elem.get('id') for elem in js_elements]
+
+        # Verify all expected resources are registered
+        for resource in expected_resources:
+            assert resource in registered_ids, \
+                f"JavaScript resource {resource} not registered in jsregistry.xml"
+
+        # Verify webauthn-utils.js is loaded first (insert-after="*")
+        utils_elem = None
+        for elem in js_elements:
+            if 'webauthn-utils.js' in elem.get('id', ''):
+                utils_elem = elem
+                break
+
+        assert utils_elem is not None, "webauthn-utils.js not found in jsregistry.xml"
+        assert utils_elem.get('insert-after') == '*', \
+            "webauthn-utils.js should be inserted after '*' to load first"
+
+        # Verify other JS files depend on utils
+        for elem in js_elements:
+            resource_id = elem.get('id', '')
+            if 'webauthn-' in resource_id and 'utils' not in resource_id:
+                insert_after = elem.get('insert-after', '')
+                assert 'webauthn-utils.js' in insert_after, \
+                    f"{resource_id} should depend on webauthn-utils.js"
+
+    def test_javascript_files_exist(self):
+        """Test that all external JavaScript files exist."""
+        import os
+
+        js_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'src', 'c2', 'pas', 'aal2', 'browser', 'static', 'js'
+        )
+
+        expected_files = [
+            'webauthn-utils.js',
+            'webauthn-register.js',
+            'webauthn-login.js',
+            'webauthn-aal2.js',
+            'passkey-management.js',
+        ]
+
+        for filename in expected_files:
+            filepath = os.path.join(js_dir, filename)
+            assert os.path.exists(filepath), \
+                f"JavaScript file {filename} not found at {filepath}"
+
+            # Verify file is not empty
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+            assert len(content) > 100, \
+                f"JavaScript file {filename} appears to be empty or too small"
