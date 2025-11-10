@@ -85,20 +85,20 @@
       permission="zope2.View"
       />
 
-  <!-- Viewlet for personal toolbar -->
+  <!-- Viewlet for personal toolbar - Plone 6 compatible -->
   <browser:viewlet
       name="c2.pas.aal2.passkey-management"
-      manager="plone.app.layout.viewlets.interfaces.IPersonalBarViewletManager"
+      manager="plone.app.layout.viewlets.interfaces.IPortalTop"
       class=".viewlets.PasskeyManagementViewlet"
       template="templates/passkey_viewlet.pt"
       permission="zope2.View"
       layer="*"
       />
 
-  <!-- AAL2 Status Viewlet (US4) -->
+  <!-- AAL2 Status Viewlet - Plone 6 compatible -->
   <browser:viewlet
       name="c2.pas.aal2.status"
-      manager="plone.app.layout.viewlets.interfaces.IPortalHeader"
+      manager="plone.app.layout.viewlets.interfaces.IPortalTop"
       class=".viewlets.AAL2StatusViewlet"
       template="aal2_status.pt"
       permission="zope2.View"
