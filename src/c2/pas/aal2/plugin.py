@@ -755,12 +755,16 @@ class AAL2Plugin(BasePlugin):
                 # Get the site's secret (used by plone.session)
                 # This is typically stored in PAS session plugin
                 secret = ''
-                try:
-                    session_plugin = portal.acl_users.get('session')
-                    if session_plugin and hasattr(session_plugin, 'secret'):
+                session_plugin = portal.acl_users.get('session')
+                if session_plugin:
+                    if hasattr(session_plugin, 'secret'):
                         secret = session_plugin.secret
-                except Exception:
-                    pass
+                    logger.info(f"Session plugin found, secret length: {len(secret) if secret else 0}")
+                else:
+                    logger.warning("Session plugin not found in acl_users")
+
+                if not secret:
+                    logger.error("No secret available for ticket creation - session will not work")
 
                 # Create ticket with proper signature
                 # createTicket(secret, userid, tokens=(), user_data='', ip='', timestamp=None, digest_algo='sha512')
@@ -771,6 +775,8 @@ class AAL2Plugin(BasePlugin):
                     user_data='',
                     ip=remote_addr,
                 )
+
+                logger.info(f"Created ticket: {ticket[:50]}... (length: {len(ticket)})")
 
                 # Set the __ac cookie with the ticket
                 response.setCookie(
