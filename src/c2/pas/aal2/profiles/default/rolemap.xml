@@ -7,7 +7,7 @@
 
   <permissions>
     <!-- Map the AAL2 permission to roles -->
-    <permission name="Require AAL2 Authentication" acquired="False">
+    <permission name="Require AAL2 Authentication" acquire="False">
       <role name="Manager"/>
       <role name="AAL2 Required User"/>
     </permission>
