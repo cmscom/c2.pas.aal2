@@ -28,7 +28,14 @@
       "Bash(pip install:*)",
       "Bash(ruff check:*)",
       "Bash(done)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(if [ -d \"/workspace/specs/005-implementation-refinements/checklists\" ])",
+      "Bash(then ls /workspace/specs/005-implementation-refinements/checklists/*.md)",
+      "Bash(src/c2/pas/aal2/storage/__init__.py)",
+      "Bash(src/c2/pas/aal2/controlpanel/__init__.py)",
+      "Bash(src/c2/pas/aal2/catalog/__init__.py)",
+      "Bash(/workspace/src/c2/pas/aal2/profiles/default/c2.pas.aal2_default.txt)"
     ],
     "deny": [],
     "ask": []

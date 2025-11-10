@@ -136,124 +136,19 @@
   </metal:content-core>
 
   <metal:javascript fill-slot="javascript_head_slot">
-    <script type="text/javascript" tal:content="structure string:
-      // Base64url encoding/decoding helpers
-      function base64urlDecode(input) {
-        input = input.replace(/-/g, '+').replace(/_/g, '/');
-        const pad = input.length % 4;
-        if (pad) {
-          if (pad === 1) {
-            throw new Error('Invalid base64url string');
-          }
-          input += new Array(5 - pad).join('=');
-        }
-        const base64 = atob(input);
-        const bytes = new Uint8Array(base64.length);
-        for (let i = 0; i < base64.length; i++) {
-          bytes[i] = base64.charCodeAt(i);
-        }
-        return bytes.buffer;
-      }
+    <!-- Load WebAuthn JavaScript modules -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-utils.js"></script>
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-login.js"></script>
 
-      function base64urlEncode(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-        return base64.replace(/\\\\+/g, '-').replace(/\\\\//g, '_').replace(/=/g, '');
-      }
-
-      // Passkey login handler
-      if (document.getElementById('passkey-login-button')) {
-        document.getElementById('passkey-login-button').addEventListener('click', async function() {
-          const username = document.getElementById('passkey-username').value;
-
-          const errorDiv = document.getElementById('passkey-error');
-          const successDiv = document.getElementById('passkey-success');
-          const infoDiv = document.getElementById('passkey-login-info');
-
-          errorDiv.style.display = 'none';
-          successDiv.style.display = 'none';
-          infoDiv.style.display = 'none';
-
-          try {
-            // Step 1: Get authentication options
-            const optionsResponse = await fetch('@@passkey-login-options', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({username: username || null})
-            });
-
-            if (!optionsResponse.ok) {
-              const error = await optionsResponse.json();
-              throw new Error(error.message || 'Failed to get authentication options');
-            }
-
-            const optionsData = await optionsResponse.json();
-            const options = optionsData.publicKey;
-
-            // Decode base64url fields
-            options.challenge = base64urlDecode(options.challenge);
-            if (options.allowCredentials) {
-              options.allowCredentials = options.allowCredentials.map(cred => ({
-                ...cred,
-                id: base64urlDecode(cred.id)
-              }));
-            }
-
-            infoDiv.style.display = 'block';
-
-            // Step 2: Call WebAuthn API
-            const credential = await navigator.credentials.get({publicKey: options});
-            infoDiv.style.display = 'none';
-
-            // Step 3: Verify assertion
-            const verifyResponse = await fetch('@@passkey-login-verify', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                credential: {
-                  id: credential.id,
-                  rawId: base64urlEncode(credential.rawId),
-                  type: credential.type,
-                  response: {
-                    clientDataJSON: base64urlEncode(credential.response.clientDataJSON),
-                    authenticatorData: base64urlEncode(credential.response.authenticatorData),
-                    signature: base64urlEncode(credential.response.signature),
-                    userHandle: credential.response.userHandle ?
-                      base64urlEncode(credential.response.userHandle) : null
-                  }
-                },
-                username: username || null
-              })
-            });
-
-            if (!verifyResponse.ok) {
-              const error = await verifyResponse.json();
-              throw new Error(error.message || 'Authentication failed');
-            }
-
-            const result = await verifyResponse.json();
-
-            // Success!
-            successDiv.innerHTML = '<strong>Success!</strong> You are now logged in. Redirecting...';
-            successDiv.style.display = 'block';
-
-            setTimeout(function() {
-              window.location.href = result.redirect_url || '/';
-            }, 1000);
-
-          } catch (error) {
-            console.error('Passkey login error:', error);
-            errorDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
-            errorDiv.style.display = 'block';
-            infoDiv.style.display = 'none';
-          }
+    <!-- Initialize enhanced login (password + passkey) -->
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        initEnhancedLogin({
+          usernameInputId: 'passkey-username',
+          loginButtonId: 'passkey-login-button',
+          autoFillUsername: false
         });
-      }
-    ">
+      });
     </script>
   </metal:javascript>
 

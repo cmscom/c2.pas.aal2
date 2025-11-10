@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Passkey credential storage helpers for ZODB annotations."""
+"""Passkey credential storage helpers for ZODB annotations.
+
+Plone 6 Compatibility:
+- Uses portal annotations instead of user annotations (MemberData doesn't support IAnnotations)
+- Stores credentials in portal-level storage keyed by user ID
+"""
 
 from zope.annotation.interfaces import IAnnotations
 from persistent.dict import PersistentDict
 from datetime import datetime, timezone
+from plone import api
 import base64
 import logging
 
@@ -13,9 +19,30 @@ logger = logging.getLogger('c2.pas.aal2.credential')
 PASSKEY_ANNOTATION_KEY = "c2.pas.aal2.passkeys"
 
 
+def _get_passkey_storage():
+    """Get the portal-level passkey storage container.
+
+    Returns:
+        PersistentDict: Portal annotations dict keyed by user_id
+    """
+    try:
+        portal = api.portal.get()
+        annotations = IAnnotations(portal)
+
+        if PASSKEY_ANNOTATION_KEY not in annotations:
+            annotations[PASSKEY_ANNOTATION_KEY] = PersistentDict()
+
+        return annotations[PASSKEY_ANNOTATION_KEY]
+    except Exception as e:
+        logger.error(f"Failed to get passkey storage: {e}", exc_info=True)
+        return PersistentDict()
+
+
 def get_user_passkeys(user):
     """
     Retrieve all passkey credentials for a user.
+
+    Plone 6 Compatible: Uses portal-level storage.
 
     Args:
         user: Plone user object
@@ -24,8 +51,9 @@ def get_user_passkeys(user):
         PersistentDict: Dictionary of credential_id (base64url) -> credential_data
     """
     try:
-        annotations = IAnnotations(user)
-        return annotations.get(PASSKEY_ANNOTATION_KEY, PersistentDict())
+        user_id = user.getId() if hasattr(user, 'getId') else str(user)
+        storage = _get_passkey_storage()
+        return storage.get(user_id, PersistentDict())
     except Exception as e:
         logger.error(f"Failed to get passkeys for user: {e}", exc_info=True)
         return PersistentDict()
@@ -34,6 +62,8 @@ def get_user_passkeys(user):
 def add_passkey(user, credential_data):
     """
     Add a new passkey credential to a user.
+
+    Plone 6 Compatible: Uses portal-level storage.
 
     Args:
         user: Plone user object
@@ -50,8 +80,14 @@ def add_passkey(user, credential_data):
         str: Base64url-encoded credential_id (the key used), or None on error
     """
     try:
-        annotations = IAnnotations(user)
-        passkeys = annotations.get(PASSKEY_ANNOTATION_KEY, PersistentDict())
+        user_id = user.getId() if hasattr(user, 'getId') else str(user)
+        storage = _get_passkey_storage()
+
+        # Get or create user's passkey dict
+        if user_id not in storage:
+            storage[user_id] = PersistentDict()
+
+        passkeys = storage[user_id]
 
         # Use base64url-encoded credential_id as dictionary key
         credential_id_bytes = credential_data['credential_id']
@@ -73,10 +109,10 @@ def add_passkey(user, credential_data):
         })
 
         passkeys[credential_id_b64] = passkey
-        annotations[PASSKEY_ANNOTATION_KEY] = passkeys
+        storage[user_id] = passkeys
 
-        # Mark object as modified for ZODB persistence
-        user._p_changed = True
+        # Mark storage as modified for ZODB persistence
+        storage._p_changed = True
 
         logger.info(f"Added passkey {credential_id_b64} for user {user.getId()}")
         return credential_id_b64
@@ -135,11 +171,12 @@ def update_passkey_last_used(user, credential_id, new_sign_count):
         passkey['last_used'] = datetime.now(timezone.utc)
         passkey['sign_count'] = new_sign_count
 
-        # Mark annotation and user as modified
-        annotations = IAnnotations(user)
-        passkeys = get_user_passkeys(user)
-        annotations[PASSKEY_ANNOTATION_KEY] = passkeys
-        user._p_changed = True
+        # Mark storage as modified for ZODB persistence
+        user_id = user.getId() if hasattr(user, 'getId') else str(user)
+        storage = _get_passkey_storage()
+        passkeys = storage.get(user_id, PersistentDict())
+        storage[user_id] = passkeys
+        storage._p_changed = True
 
         logger.info(f"Updated passkey last_used and sign_count for user {user.getId()}")
         return True
@@ -153,6 +190,8 @@ def delete_passkey(user, credential_id):
     """
     Delete a passkey credential.
 
+    Plone 6 Compatible: Uses portal-level storage.
+
     Args:
         user: Plone user object
         credential_id: bytes or base64url-encoded str
@@ -161,8 +200,9 @@ def delete_passkey(user, credential_id):
         bool: True if deleted, False if not found or error
     """
     try:
-        annotations = IAnnotations(user)
-        passkeys = annotations.get(PASSKEY_ANNOTATION_KEY, PersistentDict())
+        user_id = user.getId() if hasattr(user, 'getId') else str(user)
+        storage = _get_passkey_storage()
+        passkeys = storage.get(user_id, PersistentDict())
 
         if isinstance(credential_id, bytes):
             credential_id_b64 = base64.urlsafe_b64encode(
@@ -176,8 +216,8 @@ def delete_passkey(user, credential_id):
             return False
 
         del passkeys[credential_id_b64]
-        annotations[PASSKEY_ANNOTATION_KEY] = passkeys
-        user._p_changed = True
+        storage[user_id] = passkeys
+        storage._p_changed = True
 
         logger.info(f"Deleted passkey {credential_id_b64} for user {user.getId()}")
         return True

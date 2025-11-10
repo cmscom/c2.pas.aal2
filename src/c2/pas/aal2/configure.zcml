@@ -23,6 +23,10 @@
   <!-- Include dependent configurations if needed -->
   <include package="Products.PluggableAuthService" />
   <include package="Products.GenericSetup" file="meta.zcml" />
+  <include package="Products.Five" file="meta.zcml" />
+
+  <!-- Include browser configuration -->
+  <include package=".browser" />
 
   <!-- Register GenericSetup profile for AAL2 installation -->
   <genericsetup:registerProfile
@@ -32,6 +36,23 @@
       description="Installs AAL2 authentication plugin with permissions and roles"
       provides="Products.GenericSetup.interfaces.EXTENSION"
       xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+      />
+
+  <!-- Register GenericSetup uninstall profile -->
+  <genericsetup:registerProfile
+      name="uninstall"
+      title="C2 PAS AAL2 Plugin (uninstall)"
+      directory="profiles/uninstall"
+      description="Uninstalls AAL2 authentication plugin"
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+      />
+
+  <!-- Register hidden profiles utility -->
+  <utility
+      factory=".setuphandlers.HiddenProfiles"
+      name="c2.pas.aal2"
+      provides="Products.CMFPlone.interfaces.INonInstallable"
       />
 
   <!--

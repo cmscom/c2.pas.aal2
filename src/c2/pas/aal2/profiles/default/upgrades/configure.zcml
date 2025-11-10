@@ -1,0 +1,17 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    i18n_domain="c2.pas.aal2">
+
+  <!-- Upgrade from version 1000 to 1005 (Feature 005: Implementation Refinements) -->
+  <genericsetup:upgradeStep
+      title="Upgrade to Feature 005: Implementation Refinements"
+      description="Adds JavaScript externalization, audit logging, i18n, control panel, and performance optimizations"
+      source="1000"
+      destination="1005"
+      handler=".upgrade_to_005.upgrade_to_005"
+      sortkey="1"
+      profile="c2.pas.aal2:default"
+      />
+
+</configure>

@@ -3,8 +3,10 @@
 
 from Products.Five.browser import BrowserView
 from plone import api
+from plone.protect.interfaces import IDisableCSRFProtection
 from webauthn.helpers import options_to_json
 from AccessControl import Unauthorized
+from zope.interface import alsoProvides
 import json
 import logging
 
@@ -15,12 +17,14 @@ class PasskeyRegisterOptionsView(BrowserView):
     """Generate WebAuthn registration options for authenticated user."""
 
     def __call__(self):
-        """
-        Generate registration options.
+        """Generate registration options.
 
         Returns:
             JSON response with PublicKeyCredentialCreationOptions
         """
+        # Disable CSRF protection for WebAuthn API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -83,12 +87,14 @@ class PasskeyRegisterVerifyView(BrowserView):
     """Verify and store WebAuthn registration response."""
 
     def __call__(self):
-        """
-        Verify registration response from browser.
+        """Verify registration response from browser.
 
         Returns:
             JSON response with verification result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -175,6 +181,9 @@ class PasskeyRegisterFormView(BrowserView):
 
     def __call__(self):
         """Render the registration form template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -186,12 +195,14 @@ class PasskeyLoginOptionsView(BrowserView):
     """Generate WebAuthn authentication options for login."""
 
     def __call__(self):
-        """
-        Generate authentication options.
+        """Generate authentication options.
 
         Returns:
             JSON response with PublicKeyCredentialRequestOptions
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         try:
             # Parse request body
             try:
@@ -239,12 +250,14 @@ class PasskeyLoginVerifyView(BrowserView):
     """Verify WebAuthn authentication response and create session."""
 
     def __call__(self):
-        """
-        Verify authentication response from browser.
+        """Verify authentication response from browser.
 
         Returns:
             JSON response with verification result and session cookie
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         try:
             # Parse request body
             try:
@@ -280,24 +293,43 @@ class PasskeyLoginVerifyView(BrowserView):
                 username=username,
             )
 
-            # Create authenticated session
-            # This is done by manually setting credentials in the request
-            # and letting PAS handle the session creation
+            # Create authenticated session using standard Plone mechanism
             user_id = result['user_id']
 
-            # Mark the request with passkey credentials for PAS extraction
-            self.request.set('__passkey_auth_attempt', True)
-            self.request.set('__passkey_credential', credential)
-            self.request.set('__passkey_username', user_id)
-
-            # Trigger PAS authentication
+            # Get the authenticated user
             user = acl_users.getUserById(user_id)
             if user is None:
                 raise ValueError("User not found after verification")
 
-            # Create session by calling the updateCredentials hook
-            # This will set the __ac cookie
-            acl_users._updateCredentials(self.request, self.request.response, user_id, '')
+            # Use standard Plone login mechanism
+            # This will trigger all registered ICredentialsUpdatePlugin plugins
+            from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
+
+            # First, set up authentication context
+            from AccessControl.SecurityManagement import newSecurityManager
+            newSecurityManager(self.request, user)
+            logger.info(f"Set security context for user {user_id}")
+
+            # Now call updateCredentials on ALL registered plugins (including cookie_auth)
+            # This ensures standard Plone session cookies are set
+            plugins = acl_users.plugins
+            updaters = plugins.listPlugins(ICredentialsUpdatePlugin)
+
+            for plugin_id, plugin in updaters:
+                try:
+                    plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                    logger.info(f"Called {plugin_id}.updateCredentials() for user {user_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to call {plugin_id}.updateCredentials(): {e}")
+
+            # Also trigger login event for any subscribers
+            try:
+                from zope.event import notify
+                from Products.PluggableAuthService.events import PrincipalCreated
+                notify(PrincipalCreated(user))
+                logger.info(f"Triggered login event for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to trigger login event: {e}")
 
             # Get redirect URL (typically portal URL)
             portal = api.portal.get()
@@ -306,7 +338,10 @@ class PasskeyLoginVerifyView(BrowserView):
             # Check if there's a came_from parameter
             came_from = self.request.get('came_from', redirect_url)
 
+            # Return JSON with redirect URL
+            # JavaScript will handle the redirect
             self.request.response.setHeader('Content-Type', 'application/json')
+            logger.info(f"Authentication successful for user {user_id}, will redirect to {came_from}")
             return json.dumps({
                 'success': True,
                 'user_id': user_id,
@@ -336,6 +371,9 @@ class PasskeyLoginFormView(BrowserView):
 
     def __call__(self):
         """Render the login form template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -347,12 +385,14 @@ class PasskeyListView(BrowserView):
     """List all registered passkeys for the current user."""
 
     def __call__(self):
-        """
-        List user's passkeys.
+        """List user's passkeys.
 
         Returns:
             JSON response with list of passkeys
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -401,12 +441,14 @@ class PasskeyDeleteView(BrowserView):
     """Delete a registered passkey."""
 
     def __call__(self):
-        """
-        Delete a passkey.
+        """Delete a passkey.
 
         Returns:
             JSON response with deletion result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -491,12 +533,14 @@ class PasskeyUpdateView(BrowserView):
     """Update passkey metadata (device name)."""
 
     def __call__(self):
-        """
-        Update passkey metadata.
+        """Update passkey metadata.
 
         Returns:
             JSON response with update result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -593,6 +637,9 @@ class PasskeyManageView(BrowserView):
 
     def __call__(self):
         """Render the management template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -605,6 +652,9 @@ class EnhancedLoginView(BrowserView):
 
     def __call__(self):
         """Render the enhanced login template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
     def standard_login_form(self):
@@ -662,6 +712,9 @@ class AAL2ChallengeView(BrowserView):
 
     def __call__(self):
         """Render the AAL2 challenge page."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check if user is authenticated
         if api.user.is_anonymous():
             # Redirect to login page
@@ -724,6 +777,9 @@ class AAL2SettingsView(BrowserView):
 
     def __call__(self):
         """Render the AAL2 settings page."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require Manager role
         if not api.user.has_permission('Manage portal'):
             raise Unauthorized("You must be a Manager to access AAL2 settings")

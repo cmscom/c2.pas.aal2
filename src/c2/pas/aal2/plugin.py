@@ -10,7 +10,7 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
 from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
 from Products.PluggableAuthService.interfaces.plugins import IValidationPlugin
-from zope.session.interfaces import ISession
+from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 import logging
 
 from c2.pas.aal2.interfaces import IAAL2Plugin
@@ -72,15 +72,21 @@ class AAL2Plugin(BasePlugin):
     def extractCredentials(self, request):
         """Extract credentials from the request.
 
-        This implementation extracts WebAuthn assertion credentials from POST requests.
+        This implementation handles two types of credential extraction:
+        1. WebAuthn assertion credentials for passkey login
+        2. Authentication ticket validation from __ac cookie
 
         Args:
             request: The HTTP request object
 
         Returns:
-            dict: Credentials dict with 'passkey_assertion' or empty dict
+            dict: Credentials dict or empty dict
         """
-        # Check if this is a passkey authentication request
+        # Log request URL for debugging
+        path = request.get('PATH_INFO', 'unknown')
+        logger.debug(f"extractCredentials called for path: {path}")
+
+        # Priority 1: Check if this is a passkey authentication request
         # We look for a special marker in the request
         if request.get('__passkey_auth_attempt'):
             try:
@@ -89,6 +95,7 @@ class AAL2Plugin(BasePlugin):
                 username = request.get('__passkey_username')
 
                 if credential and username:
+                    logger.info(f"Extracted passkey credentials for user {username}")
                     return {
                         'extractor': 'passkey',
                         'passkey_assertion': credential,
@@ -97,13 +104,19 @@ class AAL2Plugin(BasePlugin):
             except Exception as e:
                 logger.error(f"Failed to extract passkey credentials: {e}", exc_info=True)
 
+        # Priority 2: Let standard Plone cookie auth handle cookie extraction
+        # We only handle passkey-specific authentication in this plugin
+        # The standard cookie_auth plugin will handle __ac cookie validation
+
+        # Return empty dict - let other plugins handle cookie authentication
         return {}
 
     # IAuthenticationPlugin implementation
     def authenticateCredentials(self, credentials):
         """Authenticate the provided credentials.
 
-        This implementation authenticates WebAuthn passkey assertions.
+        This implementation ONLY handles WebAuthn passkey assertions.
+        Cookie-based authentication is handled by standard Plone plugins.
 
         Args:
             credentials (dict): The credentials to authenticate
@@ -111,8 +124,11 @@ class AAL2Plugin(BasePlugin):
         Returns:
             tuple: (user_id, login) on success, or None on failure
         """
+        extractor = credentials.get('extractor')
+
         # Only handle passkey credentials
-        if credentials.get('extractor') != 'passkey':
+        if extractor != 'passkey':
+            # Let other plugins handle non-passkey authentication
             return None
 
         try:
@@ -321,11 +337,10 @@ class AAL2Plugin(BasePlugin):
             )
 
             # Store challenge in session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request)
             session_data['registration_challenge'] = options.challenge
             session_data['registration_user_id'] = user.getId()
-            session['c2.pas.aal2'] = session_data
+            self._set_session_data(request, session_data)
 
             # Audit log
             log_registration_start(user.getId(), request)
@@ -352,18 +367,20 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Get challenge from session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request, create=False)
             expected_challenge = session_data.get('registration_challenge')
 
             if not expected_challenge:
                 raise ValueError("No registration challenge found in session")
 
             # Get site configuration
-            rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
-            expected_origin = f"https://{rp_id}"
+            http_host = request.get('HTTP_HOST', 'localhost')
+            rp_id = http_host.split(':')[0]  # RP ID is hostname without port
+
+            # Origin includes protocol and port
+            expected_origin = f"https://{http_host}"
             if 'localhost' in rp_id or '127.0.0.1' in rp_id:
-                expected_origin = f"http://{rp_id}"  # Allow HTTP for localhost
+                expected_origin = f"http://{http_host}"  # Allow HTTP for localhost
 
             # Verify registration
             verification = verify_registration(
@@ -386,9 +403,7 @@ class AAL2Plugin(BasePlugin):
             })
 
             # Clear session challenge
-            session_data.pop('registration_challenge', None)
-            session_data.pop('registration_user_id', None)
-            session['c2.pas.aal2'] = session_data
+            self._clear_session_data(request)
 
             # Audit log
             log_registration_success(user.getId(), credential_id, request)
@@ -442,11 +457,10 @@ class AAL2Plugin(BasePlugin):
             )
 
             # Store challenge in session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request)
             session_data['authentication_challenge'] = options.challenge
             session_data['authentication_username'] = username
-            session['c2.pas.aal2'] = session_data
+            self._set_session_data(request, session_data)
 
             # Audit log
             log_authentication_start(username or 'unknown', request)
@@ -473,8 +487,7 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Get challenge from session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request, create=False)
             expected_challenge = session_data.get('authentication_challenge')
 
             if not expected_challenge:
@@ -510,10 +523,13 @@ class AAL2Plugin(BasePlugin):
             passkey = get_passkey(authenticated_user, credential_id)
 
             # Get site configuration
-            rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
-            expected_origin = f"https://{rp_id}"
+            http_host = request.get('HTTP_HOST', 'localhost')
+            rp_id = http_host.split(':')[0]  # RP ID is hostname without port
+
+            # Origin includes protocol and port
+            expected_origin = f"https://{http_host}"
             if 'localhost' in rp_id or '127.0.0.1' in rp_id:
-                expected_origin = f"http://{rp_id}"
+                expected_origin = f"http://{http_host}"  # Allow HTTP for localhost
 
             # Verify authentication
             verification = verify_authentication(
@@ -538,9 +554,7 @@ class AAL2Plugin(BasePlugin):
             logger.info(f"Set AAL2 timestamp for user {authenticated_user.getId()}")
 
             # Clear session challenge
-            session_data.pop('authentication_challenge', None)
-            session_data.pop('authentication_username', None)
-            session['c2.pas.aal2'] = session_data
+            self._clear_session_data(request)
 
             # Audit log
             log_authentication_success(
@@ -564,6 +578,157 @@ class AAL2Plugin(BasePlugin):
     def _get_portal(self, request):
         """Helper method to get portal object from request."""
         try:
-            return request.PARENTS[-1]
-        except (AttributeError, IndexError):
-            return None
+            from plone import api
+            return api.portal.get()
+        except Exception:
+            # Fallback to request traversal
+            try:
+                return request.PARENTS[-1]
+            except (AttributeError, IndexError):
+                return None
+
+    def _get_session_data(self, request, create=True):
+        """Helper method to get session data (Plone 6 compatible).
+
+        Uses portal annotations for temporary storage since session may not
+        persist across requests with CSRF protection disabled.
+
+        Args:
+            request: HTTP request object
+            create: Whether to create session data if not exists
+
+        Returns:
+            dict: Session data dictionary, or empty dict if not available
+        """
+        try:
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+            from persistent.dict import PersistentDict
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            # Use a temporary annotation key for WebAuthn challenges
+            # These are cleaned up after verification
+            challenge_key = 'c2.pas.aal2.challenges'
+
+            if challenge_key not in annotations and create:
+                annotations[challenge_key] = PersistentDict()
+
+            # Get session ID or use IP-based key as fallback
+            session_id = None
+            if hasattr(request, 'SESSION'):
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                # Fallback to IP + user agent hash
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations.get(challenge_key, PersistentDict())
+
+            if session_id not in challenges and create:
+                challenges[session_id] = PersistentDict()
+                annotations[challenge_key] = challenges
+
+            return challenges.get(session_id, {})
+
+        except Exception as e:
+            logger.warning(f"Could not access session: {e}", exc_info=True)
+        return {}
+
+    def _set_session_data(self, request, data):
+        """Helper method to set session data (Plone 6 compatible).
+
+        Uses portal annotations for temporary storage.
+
+        Args:
+            request: HTTP request object
+            data: Dictionary to store in session
+        """
+        try:
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+            from persistent.dict import PersistentDict
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            challenge_key = 'c2.pas.aal2.challenges'
+
+            if challenge_key not in annotations:
+                annotations[challenge_key] = PersistentDict()
+
+            # Get session ID or use IP-based key as fallback
+            session_id = None
+            if hasattr(request, 'SESSION'):
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                # Fallback to IP + user agent hash
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations[challenge_key]
+            challenges[session_id] = PersistentDict(data)
+            annotations[challenge_key] = challenges
+            annotations[challenge_key]._p_changed = True
+
+            logger.debug(f"Stored session data for session_id: {session_id}")
+
+        except Exception as e:
+            logger.warning(f"Could not set session data: {e}", exc_info=True)
+
+    def _clear_session_data(self, request):
+        """Clear session data after successful verification.
+
+        Args:
+            request: HTTP request object
+        """
+        try:
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            challenge_key = 'c2.pas.aal2.challenges'
+            if challenge_key not in annotations:
+                return
+
+            # Get session ID
+            session_id = None
+            if hasattr(request, 'SESSION'):
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations[challenge_key]
+            if session_id in challenges:
+                del challenges[session_id]
+                annotations[challenge_key] = challenges
+                annotations[challenge_key]._p_changed = True
+                logger.debug(f"Cleared session data for session_id: {session_id}")
+
+        except Exception as e:
+            logger.warning(f"Could not clear session data: {e}", exc_info=True)
+
+    # Note: We no longer implement ICredentialsUpdatePlugin
+    # Standard Plone cookie auth handles session persistence

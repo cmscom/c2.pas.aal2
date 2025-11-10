@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<import-steps>
+  <import-step id="c2.pas.aal2.post_install"
+               version="1005"
+               handler="c2.pas.aal2.setuphandlers.post_install"
+               title="C2 PAS AAL2: Post Install">
+    <dependency step="typeinfo" />
+    Post install configuration for c2.pas.aal2
+  </import-step>
+</import-steps>
