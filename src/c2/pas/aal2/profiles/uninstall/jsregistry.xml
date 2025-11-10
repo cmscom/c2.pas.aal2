@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<object name="portal_javascripts">
+
+  <!-- Remove JavaScript resources on uninstall -->
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-utils.js"
+              remove="True" />
+
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-register.js"
+              remove="True" />
+
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-login.js"
+              remove="True" />
+
+  <javascript id="++resource++c2.pas.aal2/js/webauthn-aal2.js"
+              remove="True" />
+
+  <javascript id="++resource++c2.pas.aal2/js/passkey-management.js"
+              remove="True" />
+
+</object>

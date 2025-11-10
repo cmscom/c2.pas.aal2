@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<layers>
+  <!-- Remove browser layer on uninstall (if we had one) -->
+</layers>

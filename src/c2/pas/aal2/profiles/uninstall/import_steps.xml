@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<import-steps>
+  <import-step id="c2.pas.aal2.uninstall"
+               version="1005"
+               handler="c2.pas.aal2.setuphandlers.uninstall"
+               title="C2 PAS AAL2: Uninstall">
+    Uninstall configuration for c2.pas.aal2
+  </import-step>
+</import-steps>
