@@ -315,7 +315,7 @@ class PasskeyLoginVerifyView(BrowserView):
             session_plugin = None
             try:
                 for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
-                    plugin = acl_users.plugins[plugin_name]
+                    plugin = acl_users[plugin_name]  # Access plugin from acl_users directly
                     if hasattr(plugin, 'createTicket') or 'session' in plugin_name.lower():
                         session_plugin = plugin
                         break
@@ -328,7 +328,7 @@ class PasskeyLoginVerifyView(BrowserView):
                 else:
                     # Fallback: set credentials directly for all update plugins
                     for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
-                        plugin = acl_users.plugins[plugin_name]
+                        plugin = acl_users[plugin_name]  # Access plugin from acl_users directly
                         if hasattr(plugin, 'updateCredentials'):
                             try:
                                 plugin.updateCredentials(self.request, self.request.response, user_id, '')
