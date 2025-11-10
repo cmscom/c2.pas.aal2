@@ -308,29 +308,42 @@ class PasskeyLoginVerifyView(BrowserView):
             if user is None:
                 raise ValueError("User not found after verification")
 
-            # Create authenticated session
-            # Use PAS to establish login session properly
-            from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
+            # Create authenticated session by setting __ac cookie directly
+            # This is necessary because plone.session may not work without temp_folder
+            #
+            # TODO/REFACTORING: This cookie-setting logic should be moved to the
+            # AAL2Plugin itself by implementing ICredentialsUpdatePlugin interface.
+            # Current implementation violates separation of concerns - the view
+            # should only handle HTTP request/response, while the PAS plugin should
+            # handle authentication state management (including cookies).
+            #
+            # Recommended refactoring:
+            # 1. Add ICredentialsUpdatePlugin to AAL2Plugin's implemented interfaces
+            # 2. Implement updateCredentials() method in AAL2Plugin to set __ac cookie
+            # 3. Remove cookie-setting code from this view
+            # 4. Call plugin.updateCredentials() from view instead
+            #
+            # This will make the code more maintainable, reusable, and aligned
+            # with Plone's PAS architecture.
+            import base64
+            from urllib.parse import quote
 
-            # Set login credentials in request for PAS to process
-            self.request.form['__ac_name'] = user_id
-            self.request.form['__ac_password'] = ''
+            # Create the __ac cookie value: base64(username:password)
+            # For passkey auth, we use empty password
+            cookie_value = base64.b64encode(f"{user_id}:".encode('utf-8')).decode('ascii')
 
-            # Call all ICredentialsUpdatePlugin plugins
-            try:
-                for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
-                    plugin = acl_users[plugin_name]
-                    if hasattr(plugin, 'updateCredentials'):
-                        try:
-                            plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                            logger.info(f"Updated credentials via plugin: {plugin_name}")
-                        except Exception as e:
-                            logger.warning(f"Plugin {plugin_name} updateCredentials failed: {e}")
-            except Exception as e:
-                logger.error(f"Failed to update credentials: {e}", exc_info=True)
+            # Set the __ac cookie
+            # This is the standard Plone authentication cookie
+            self.request.response.setCookie(
+                '__ac',
+                quote(cookie_value),
+                path='/',
+                # Secure flag should be True in production (HTTPS)
+                # For localhost testing, we leave it as False
+            )
+            logger.info(f"Set __ac cookie for user {user_id}")
 
-            # Also set the AUTHENTICATED_USER in session for immediate effect
-            # This ensures the user is logged in for this request
+            # Also set the AUTHENTICATED_USER in current request context
             from AccessControl.SecurityManagement import newSecurityManager
             newSecurityManager(self.request, user)
             logger.info(f"Set security context for user {user_id}")
