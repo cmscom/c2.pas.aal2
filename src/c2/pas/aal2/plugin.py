@@ -383,9 +383,7 @@ class AAL2Plugin(BasePlugin):
             })
 
             # Clear session challenge
-            session_data.pop('registration_challenge', None)
-            session_data.pop('registration_user_id', None)
-            session['c2.pas.aal2'] = session_data
+            self._clear_session_data(request)
 
             # Audit log
             log_registration_success(user.getId(), credential_id, request)
@@ -533,9 +531,7 @@ class AAL2Plugin(BasePlugin):
             logger.info(f"Set AAL2 timestamp for user {authenticated_user.getId()}")
 
             # Clear session challenge
-            session_data.pop('authentication_challenge', None)
-            session_data.pop('authentication_username', None)
-            session['c2.pas.aal2'] = session_data
+            self._clear_session_data(request)
 
             # Audit log
             log_authentication_success(
@@ -571,6 +567,9 @@ class AAL2Plugin(BasePlugin):
     def _get_session_data(self, request, create=True):
         """Helper method to get session data (Plone 6 compatible).
 
+        Uses portal annotations for temporary storage since session may not
+        persist across requests with CSRF protection disabled.
+
         Args:
             request: HTTP request object
             create: Whether to create session data if not exists
@@ -579,25 +578,131 @@ class AAL2Plugin(BasePlugin):
             dict: Session data dictionary, or empty dict if not available
         """
         try:
-            # Plone 6: Use request.SESSION directly
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+            from persistent.dict import PersistentDict
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            # Use a temporary annotation key for WebAuthn challenges
+            # These are cleaned up after verification
+            challenge_key = 'c2.pas.aal2.challenges'
+
+            if challenge_key not in annotations and create:
+                annotations[challenge_key] = PersistentDict()
+
+            # Get session ID or use IP-based key as fallback
+            session_id = None
             if hasattr(request, 'SESSION'):
-                session = request.SESSION
-                if 'c2.pas.aal2' not in session and create:
-                    session['c2.pas.aal2'] = {}
-                return session.get('c2.pas.aal2', {})
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                # Fallback to IP + user agent hash
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations.get(challenge_key, PersistentDict())
+
+            if session_id not in challenges and create:
+                challenges[session_id] = PersistentDict()
+                annotations[challenge_key] = challenges
+
+            return challenges.get(session_id, {})
+
         except Exception as e:
-            logger.warning(f"Could not access session: {e}")
+            logger.warning(f"Could not access session: {e}", exc_info=True)
         return {}
 
     def _set_session_data(self, request, data):
         """Helper method to set session data (Plone 6 compatible).
+
+        Uses portal annotations for temporary storage.
 
         Args:
             request: HTTP request object
             data: Dictionary to store in session
         """
         try:
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+            from persistent.dict import PersistentDict
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            challenge_key = 'c2.pas.aal2.challenges'
+
+            if challenge_key not in annotations:
+                annotations[challenge_key] = PersistentDict()
+
+            # Get session ID or use IP-based key as fallback
+            session_id = None
             if hasattr(request, 'SESSION'):
-                request.SESSION['c2.pas.aal2'] = data
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                # Fallback to IP + user agent hash
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations[challenge_key]
+            challenges[session_id] = PersistentDict(data)
+            annotations[challenge_key] = challenges
+            annotations[challenge_key]._p_changed = True
+
+            logger.debug(f"Stored session data for session_id: {session_id}")
+
         except Exception as e:
-            logger.warning(f"Could not set session data: {e}")
+            logger.warning(f"Could not set session data: {e}", exc_info=True)
+
+    def _clear_session_data(self, request):
+        """Clear session data after successful verification.
+
+        Args:
+            request: HTTP request object
+        """
+        try:
+            from plone import api
+            from zope.annotation.interfaces import IAnnotations
+
+            portal = api.portal.get()
+            annotations = IAnnotations(portal)
+
+            challenge_key = 'c2.pas.aal2.challenges'
+            if challenge_key not in annotations:
+                return
+
+            # Get session ID
+            session_id = None
+            if hasattr(request, 'SESSION'):
+                try:
+                    session_id = request.SESSION._sid
+                except Exception:
+                    pass
+
+            if not session_id:
+                import hashlib
+                ip = request.get('HTTP_X_FORWARDED_FOR', request.get('REMOTE_ADDR', 'unknown'))
+                ua = request.get('HTTP_USER_AGENT', '')
+                session_id = hashlib.md5(f"{ip}{ua}".encode()).hexdigest()
+
+            challenges = annotations[challenge_key]
+            if session_id in challenges:
+                del challenges[session_id]
+                annotations[challenge_key] = challenges
+                annotations[challenge_key]._p_changed = True
+                logger.debug(f"Cleared session data for session_id: {session_id}")
+
+        except Exception as e:
+            logger.warning(f"Could not clear session data: {e}", exc_info=True)
