@@ -59,6 +59,7 @@ def install_pas_plugin(portal):
     from Products.PluggableAuthService.interfaces.plugins import (
         IAuthenticationPlugin,
         IExtractionPlugin,
+        IValidationPlugin,
         ICredentialsUpdatePlugin,
     )
 
@@ -81,8 +82,9 @@ def install_pas_plugin(portal):
     plugins = acl_users.plugins
 
     interfaces_to_activate = [
-        IAuthenticationPlugin,
         IExtractionPlugin,
+        IAuthenticationPlugin,
+        IValidationPlugin,
         ICredentialsUpdatePlugin,
     ]
 
@@ -91,10 +93,19 @@ def install_pas_plugin(portal):
             if plugin_id not in plugins.listPluginIds(interface):
                 plugins.activatePlugin(interface, plugin_id)
                 logger.info(f"Activated '{plugin_id}' for {interface.__name__}")
+
+            # Set plugin priority (AAL2 plugin should have high priority)
+            # For extraction and authentication, it should be before cookie_auth
+            # to handle passkey authentication first
+            if interface in (IExtractionPlugin, IAuthenticationPlugin, IValidationPlugin):
+                # Move to top of the list (highest priority)
+                plugins.movePluginsUp(interface, [plugin_id])
+                logger.info(f"Set high priority for '{plugin_id}' in {interface.__name__}")
+
         except Exception as e:
             logger.warning(f"Could not activate '{plugin_id}' for {interface.__name__}: {e}")
 
-    logger.info(f"PAS plugin '{plugin_id}' installed and activated")
+    logger.info(f"PAS plugin '{plugin_id}' installed and activated with proper priorities")
 
 
 def uninstall(context):

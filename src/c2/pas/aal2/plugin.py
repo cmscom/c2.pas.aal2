@@ -83,7 +83,7 @@ class AAL2Plugin(BasePlugin):
         Returns:
             dict: Credentials dict or empty dict
         """
-        # Check if this is a passkey authentication request
+        # Priority 1: Check if this is a passkey authentication request
         # We look for a special marker in the request
         if request.get('__passkey_auth_attempt'):
             try:
@@ -92,6 +92,7 @@ class AAL2Plugin(BasePlugin):
                 username = request.get('__passkey_username')
 
                 if credential and username:
+                    logger.debug(f"Extracted passkey credentials for user {username}")
                     return {
                         'extractor': 'passkey',
                         'passkey_assertion': credential,
@@ -100,12 +101,23 @@ class AAL2Plugin(BasePlugin):
             except Exception as e:
                 logger.error(f"Failed to extract passkey credentials: {e}", exc_info=True)
 
-        # Check for __ac cookie with authentication ticket
-        # Try to get cookie from request - Plone/Zope automatically extracts cookies
-        cookie = request.get('__ac')
-        if not cookie and hasattr(request, 'cookies'):
-            # Fallback: try cookies attribute
+        # Priority 2: Check for __ac cookie with authentication ticket
+        # This handles subsequent requests after successful passkey login
+        cookie = None
+
+        # Try multiple ways to get the cookie
+        if hasattr(request, 'cookies'):
             cookie = request.cookies.get('__ac')
+        if not cookie:
+            # Fallback: try to get from request environment
+            cookie = request.get('__ac')
+        if not cookie and hasattr(request, 'environ'):
+            # For WSGI environments
+            cookie_header = request.environ.get('HTTP_COOKIE', '')
+            for cookie_part in cookie_header.split(';'):
+                if cookie_part.strip().startswith('__ac='):
+                    cookie = cookie_part.strip()[5:]  # Remove '__ac=' prefix
+                    break
 
         if cookie:
             try:
@@ -124,6 +136,7 @@ class AAL2Plugin(BasePlugin):
                 remote_addr = request.get('HTTP_X_FORWARDED_FOR',
                                          request.get('REMOTE_ADDR', '127.0.0.1'))
                 if ',' in remote_addr:
+                    # Get first IP in chain for X-Forwarded-For header
                     remote_addr = remote_addr.split(',')[0].strip()
                 if not remote_addr or remote_addr == 'unknown':
                     remote_addr = '127.0.0.1'
@@ -134,12 +147,19 @@ class AAL2Plugin(BasePlugin):
                     secret=secret,
                     ticket=ticket,
                     ip=remote_addr,
-                    timeout=86400 * 7,  # 7 days timeout
+                    timeout=86400 * 7,  # 7 days timeout (matches cookie max_age)
                     mod_auth_tkt=False,  # Use HMAC SHA-256 (more secure)
                 )
 
                 if result:
                     digest, userid, tokens, user_data, timestamp = result
+
+                    # Additional validation: check if user still exists
+                    acl_users = self._get_acl_users()
+                    if acl_users.getUserById(userid) is None:
+                        logger.warning(f"User {userid} found in ticket but not in user database")
+                        return {}
+
                     logger.debug(f"Valid authentication ticket for user {userid}")
                     return {
                         'extractor': 'aal2_ticket',
@@ -147,7 +167,7 @@ class AAL2Plugin(BasePlugin):
                         'aal2_authenticated': True,
                     }
                 else:
-                    logger.debug("Invalid authentication ticket")
+                    logger.debug("Invalid or expired authentication ticket")
 
             except Exception as e:
                 logger.debug(f"Failed to validate authentication ticket: {e}")
@@ -834,12 +854,18 @@ class AAL2Plugin(BasePlugin):
             if isinstance(ticket, bytes):
                 ticket = ticket.decode('latin-1')  # Preserve byte values
 
+            # Set cookie with proper expiration
+            # Max-Age is more reliable than expires across browsers
+            max_age = 86400 * 7  # 7 days (same as ticket timeout)
+
             response.setCookie(
                 '__ac',
                 quote(ticket),
                 path='/',
-                secure=False,  # Allow HTTP for development
+                max_age=max_age,  # Cookie expires in 7 days
+                secure=request.get('SERVER_URL', '').startswith('https'),  # Use secure for HTTPS
                 http_only=True,  # Prevent JavaScript access
+                same_site='Lax',  # CSRF protection while allowing navigation
             )
 
             logger.info(f"Set AAL2 authentication cookie for user {login} (IP: {remote_addr})")

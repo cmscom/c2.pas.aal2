@@ -4,9 +4,45 @@
     <plugin
         id="aal2_plugin"
         type_name="C2 PAS AAL2 Plugin"
-        interface="Products.PluggableAuthService.interfaces.plugins.IAuthenticationPlugin"
-        interface="Products.PluggableAuthService.interfaces.plugins.IExtractionPlugin"
         meta_type="C2 PAS AAL2 Plugin"
         />
   </plugins>
+
+  <!-- Activate the plugin for all implemented interfaces -->
+  <plugin-interfaces>
+    <plugin-interface
+        id="aal2_plugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.IExtractionPlugin"
+        />
+    <plugin-interface
+        id="aal2_plugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.IAuthenticationPlugin"
+        />
+    <plugin-interface
+        id="aal2_plugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.IValidationPlugin"
+        />
+    <plugin-interface
+        id="aal2_plugin"
+        interface="Products.PluggableAuthService.interfaces.plugins.ICredentialsUpdatePlugin"
+        />
+  </plugin-interfaces>
+
+  <!-- Set plugin order (high priority for passkey authentication) -->
+  <!-- AAL2 plugin should run before cookie_auth for extraction -->
+  <!-- and after cookie_auth for credentials update -->
+  <plugin-order>
+    <extraction>
+      <plugin id="aal2_plugin" pos="0"/>
+    </extraction>
+    <authentication>
+      <plugin id="aal2_plugin" pos="0"/>
+    </authentication>
+    <validation>
+      <plugin id="aal2_plugin" pos="0"/>
+    </validation>
+    <credentialsupdater>
+      <plugin id="aal2_plugin" pos="1"/>
+    </credentialsupdater>
+  </plugin-order>
 </pluggable-auth-service>
