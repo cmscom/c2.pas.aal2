@@ -293,48 +293,43 @@ class PasskeyLoginVerifyView(BrowserView):
                 username=username,
             )
 
-            # Create authenticated session
-            # This is done by manually setting credentials in the request
-            # and letting PAS handle the session creation
+            # Create authenticated session using standard Plone mechanism
             user_id = result['user_id']
-
-            # Mark the request with passkey credentials for PAS extraction
-            self.request.set('__passkey_auth_attempt', True)
-            self.request.set('__passkey_credential', credential)
-            self.request.set('__passkey_username', user_id)
 
             # Get the authenticated user
             user = acl_users.getUserById(user_id)
             if user is None:
                 raise ValueError("User not found after verification")
 
-            # Create authenticated session using cookie_authentication plugin
-            # We need to call the cookie_authentication plugin's updateCredentials
-            # method to properly encrypt and set the __ac cookie
-            #
-            # TODO/REFACTORING: This cookie-setting logic should be moved to the
-            # AAL2Plugin itself by implementing ICredentialsUpdatePlugin interface.
-            # Current implementation violates separation of concerns - the view
-            # should only handle HTTP request/response, while the PAS plugin should
-            # handle authentication state management (including cookies).
+            # Use standard Plone login mechanism
+            # This will trigger all registered ICredentialsUpdatePlugin plugins
             from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
-            # Call AAL2Plugin's updateCredentials to set authentication cookie
-            # The plugin now implements ICredentialsUpdatePlugin
-            try:
-                plugin = acl_users.get('aal2_plugin')
-                if plugin and hasattr(plugin, 'updateCredentials'):
-                    plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                    logger.info(f"Called AAL2Plugin.updateCredentials() for user {user_id}")
-                else:
-                    logger.error("AAL2Plugin not found or doesn't have updateCredentials method")
-            except Exception as e:
-                logger.error(f"Failed to call AAL2Plugin.updateCredentials(): {e}", exc_info=True)
-
-            # Also set the AUTHENTICATED_USER in current request context
+            # First, set up authentication context
             from AccessControl.SecurityManagement import newSecurityManager
             newSecurityManager(self.request, user)
             logger.info(f"Set security context for user {user_id}")
+
+            # Now call updateCredentials on ALL registered plugins (including cookie_auth)
+            # This ensures standard Plone session cookies are set
+            plugins = acl_users.plugins
+            updaters = plugins.listPlugins(ICredentialsUpdatePlugin)
+
+            for plugin_id, plugin in updaters:
+                try:
+                    plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                    logger.info(f"Called {plugin_id}.updateCredentials() for user {user_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to call {plugin_id}.updateCredentials(): {e}")
+
+            # Also trigger login event for any subscribers
+            try:
+                from zope.event import notify
+                from Products.PluggableAuthService.events import PrincipalCreated
+                notify(PrincipalCreated(user))
+                logger.info(f"Triggered login event for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to trigger login event: {e}")
 
             # Get redirect URL (typically portal URL)
             portal = api.portal.get()

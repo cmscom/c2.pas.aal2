@@ -8,7 +8,8 @@
         />
   </plugins>
 
-  <!-- Activate the plugin for all implemented interfaces -->
+  <!-- Activate the plugin for implemented interfaces -->
+  <!-- Note: We don't implement ICredentialsUpdatePlugin - let standard Plone handle cookies -->
   <plugin-interfaces>
     <plugin-interface
         id="aal2_plugin"
@@ -22,27 +23,24 @@
         id="aal2_plugin"
         interface="Products.PluggableAuthService.interfaces.plugins.IValidationPlugin"
         />
-    <plugin-interface
-        id="aal2_plugin"
-        interface="Products.PluggableAuthService.interfaces.plugins.ICredentialsUpdatePlugin"
-        />
   </plugin-interfaces>
 
-  <!-- Set plugin order (high priority for passkey authentication) -->
-  <!-- AAL2 plugin should run before cookie_auth for extraction -->
-  <!-- and after cookie_auth for credentials update -->
+  <!-- Set plugin order -->
+  <!-- AAL2 plugin should run after standard cookie auth for extraction -->
+  <!-- but with high priority for authentication and validation -->
   <plugin-order>
     <extraction>
-      <plugin id="aal2_plugin" pos="0"/>
+      <!-- Let cookie auth extract first, then AAL2 for passkey markers -->
+      <plugin id="aal2_plugin" pos="5"/>
     </extraction>
     <authentication>
+      <!-- High priority for passkey authentication -->
       <plugin id="aal2_plugin" pos="0"/>
     </authentication>
     <validation>
+      <!-- High priority for AAL2 validation -->
       <plugin id="aal2_plugin" pos="0"/>
     </validation>
-    <credentialsupdater>
-      <plugin id="aal2_plugin" pos="1"/>
-    </credentialsupdater>
+    <!-- No credentialsupdater - we delegate to standard Plone -->
   </plugin-order>
 </pluggable-auth-service>

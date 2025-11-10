@@ -60,7 +60,6 @@ def install_pas_plugin(portal):
         IAuthenticationPlugin,
         IExtractionPlugin,
         IValidationPlugin,
-        ICredentialsUpdatePlugin,
     )
 
     acl_users = portal.acl_users
@@ -85,7 +84,8 @@ def install_pas_plugin(portal):
         IExtractionPlugin,
         IAuthenticationPlugin,
         IValidationPlugin,
-        ICredentialsUpdatePlugin,
+        # Note: We're NOT activating ICredentialsUpdatePlugin anymore
+        # We delegate to standard Plone cookie auth for that
     ]
 
     for interface in interfaces_to_activate:
@@ -94,11 +94,29 @@ def install_pas_plugin(portal):
                 plugins.activatePlugin(interface, plugin_id)
                 logger.info(f"Activated '{plugin_id}' for {interface.__name__}")
 
-            # Set plugin priority (AAL2 plugin should have high priority)
-            # For extraction and authentication, it should be before cookie_auth
-            # to handle passkey authentication first
-            if interface in (IExtractionPlugin, IAuthenticationPlugin, IValidationPlugin):
-                # Move to top of the list (highest priority)
+            # Set plugin priority
+            # For extraction: AAL2 should be AFTER cookie_auth
+            # (let cookie auth extract cookies first, we only handle passkey markers)
+            if interface == IExtractionPlugin:
+                # Get current plugin list
+                current_plugins = list(plugins.listPluginIds(interface))
+                if 'credentials_cookie_auth' in current_plugins:
+                    # Move AAL2 after cookie auth
+                    cookie_index = current_plugins.index('credentials_cookie_auth')
+                    if current_plugins.index(plugin_id) < cookie_index:
+                        # Move down to be after cookie auth
+                        for _ in range(cookie_index):
+                            plugins.movePluginsDown(interface, [plugin_id])
+                logger.info(f"Set AAL2 plugin after cookie auth for {interface.__name__}")
+
+            # For authentication: AAL2 should be high priority for passkey auth
+            elif interface == IAuthenticationPlugin:
+                # Move to top for passkey authentication
+                plugins.movePluginsUp(interface, [plugin_id])
+                logger.info(f"Set high priority for '{plugin_id}' in {interface.__name__}")
+
+            # For validation: AAL2 should be high priority for AAL2 checks
+            elif interface == IValidationPlugin:
                 plugins.movePluginsUp(interface, [plugin_id])
                 logger.info(f"Set high priority for '{plugin_id}' in {interface.__name__}")
 
