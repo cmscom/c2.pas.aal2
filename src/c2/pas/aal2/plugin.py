@@ -722,8 +722,8 @@ class AAL2Plugin(BasePlugin):
     def updateCredentials(self, request, response, login, new_password):
         """Update credentials after successful authentication.
 
-        This method sets the authentication cookie using plone.session's
-        ticket-based authentication system.
+        This method delegates to the session plugin to set the authentication
+        cookie properly.
 
         Args:
             request: HTTP request object
@@ -732,74 +732,30 @@ class AAL2Plugin(BasePlugin):
             new_password: Password (not used for passkey auth)
         """
         try:
-            # Use plone.session's ticket authentication
-            # Get the session plugin to create a proper ticket
-            portal = None
-            try:
-                from plone import api
-                portal = api.portal.get()
-            except Exception:
-                pass
+            # Get portal and session plugin
+            from plone import api
+            portal = api.portal.get()
 
-            if portal:
-                # Get the secret from portal
-                from plone.session.tktauth import createTicket
-
-                # Get remote address (must be valid IP address)
-                remote_addr = request.get('HTTP_X_FORWARDED_FOR',
-                                         request.get('REMOTE_ADDR', ''))
-                # Default to localhost if no IP found
-                if not remote_addr or remote_addr == 'unknown':
-                    remote_addr = '127.0.0.1'
-
-                # Get the site's secret (used by plone.session)
-                # This is typically stored in PAS session plugin
-                secret = ''
-                session_plugin = portal.acl_users.get('session')
-                if session_plugin:
-                    if hasattr(session_plugin, 'secret'):
-                        secret = session_plugin.secret
-
-                    # If no secret, generate one and set it
-                    if not secret:
-                        import secrets
-                        secret = secrets.token_hex(32)  # 64 character hex string
-                        try:
-                            session_plugin.secret = secret
-                            logger.info(f"Generated and set new secret for session plugin (length: {len(secret)})")
-                        except Exception as e:
-                            logger.error(f"Failed to set secret: {e}")
-                    else:
-                        logger.info(f"Session plugin found, secret length: {len(secret)}")
-                else:
-                    logger.warning("Session plugin not found in acl_users")
-
-                if not secret:
-                    logger.error("No secret available for ticket creation - session will not work")
-
-                # Create ticket with proper signature
-                # createTicket(secret, userid, tokens=(), user_data='', ip='', timestamp=None, digest_algo='sha512')
-                ticket = createTicket(
-                    secret,
-                    login,
-                    tokens=(),
-                    user_data='',
-                    ip=remote_addr,
-                )
-
-                logger.info(f"Created ticket: {ticket[:50]}... (length: {len(ticket)})")
-
-                # Set the __ac cookie with the ticket
-                response.setCookie(
-                    '__ac',
-                    ticket,
-                    path='/',
-                    # In production, use secure=True for HTTPS
-                )
-
-                logger.info(f"Set authentication ticket for user {login}")
-            else:
+            if not portal:
                 raise Exception("Portal not available")
+
+            # Get the session plugin
+            session_plugin = portal.acl_users.get('session')
+
+            if session_plugin and hasattr(session_plugin, 'updateCredentials'):
+                # Ensure session plugin has a secret
+                if hasattr(session_plugin, 'secret'):
+                    if not session_plugin.secret:
+                        import secrets
+                        session_plugin.secret = secrets.token_hex(32)
+                        logger.info(f"Generated secret for session plugin")
+
+                # Call session plugin's updateCredentials
+                # This will properly create and set the __ac cookie
+                session_plugin.updateCredentials(request, response, login, new_password)
+                logger.info(f"Delegated credential update to session plugin for user {login}")
+            else:
+                raise Exception("Session plugin not available or doesn't support updateCredentials")
             
         except Exception as e:
             logger.error(f"Failed to update credentials for {login}: {e}", exc_info=True)
