@@ -8,7 +8,9 @@ managing audit logs. All views require appropriate permissions.
 
 from Products.Five.browser import BrowserView
 from plone import api
+from plone.protect.interfaces import IDisableCSRFProtection
 from AccessControl import Unauthorized
+from zope.interface import alsoProvides
 import json
 import logging
 from datetime import datetime, timedelta
@@ -58,6 +60,9 @@ class AuditLogQueryView(BrowserView):
 
     def __call__(self):
         """Process query request and return JSON response."""
+        # Disable CSRF protection for API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check permission
         if not api.user.has_permission('Manage portal', obj=self.context):
             raise Unauthorized("You must have portal management permissions")
@@ -173,6 +178,9 @@ class AuditLogExportView(BrowserView):
 
     def __call__(self):
         """Process export request and return file."""
+        # Disable CSRF protection for API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check permission
         if not api.user.has_permission('Manage portal', obj=self.context):
             raise Unauthorized("You must have portal management permissions")
@@ -280,6 +288,9 @@ class AuditLogStatsView(BrowserView):
 
     def __call__(self):
         """Return audit log statistics."""
+        # Disable CSRF protection for API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check permission
         if not api.user.has_permission('Manage portal', obj=self.context):
             raise Unauthorized("You must have portal management permissions")
@@ -326,6 +337,9 @@ class AuditLogCleanupView(BrowserView):
 
     def __call__(self):
         """Perform cleanup and return results."""
+        # Disable CSRF protection for API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check permission
         if not api.user.has_permission('Manage portal', obj=self.context):
             raise Unauthorized("You must have portal management permissions")

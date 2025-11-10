@@ -3,8 +3,10 @@
 
 from Products.Five.browser import BrowserView
 from plone import api
+from plone.protect.interfaces import IDisableCSRFProtection
 from webauthn.helpers import options_to_json
 from AccessControl import Unauthorized
+from zope.interface import alsoProvides
 import json
 import logging
 
@@ -15,12 +17,14 @@ class PasskeyRegisterOptionsView(BrowserView):
     """Generate WebAuthn registration options for authenticated user."""
 
     def __call__(self):
-        """
-        Generate registration options.
+        """Generate registration options.
 
         Returns:
             JSON response with PublicKeyCredentialCreationOptions
         """
+        # Disable CSRF protection for WebAuthn API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -83,12 +87,14 @@ class PasskeyRegisterVerifyView(BrowserView):
     """Verify and store WebAuthn registration response."""
 
     def __call__(self):
-        """
-        Verify registration response from browser.
+        """Verify registration response from browser.
 
         Returns:
             JSON response with verification result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -175,6 +181,9 @@ class PasskeyRegisterFormView(BrowserView):
 
     def __call__(self):
         """Render the registration form template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -186,12 +195,14 @@ class PasskeyLoginOptionsView(BrowserView):
     """Generate WebAuthn authentication options for login."""
 
     def __call__(self):
-        """
-        Generate authentication options.
+        """Generate authentication options.
 
         Returns:
             JSON response with PublicKeyCredentialRequestOptions
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         try:
             # Parse request body
             try:
@@ -239,12 +250,14 @@ class PasskeyLoginVerifyView(BrowserView):
     """Verify WebAuthn authentication response and create session."""
 
     def __call__(self):
-        """
-        Verify authentication response from browser.
+        """Verify authentication response from browser.
 
         Returns:
             JSON response with verification result and session cookie
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         try:
             # Parse request body
             try:
@@ -336,6 +349,9 @@ class PasskeyLoginFormView(BrowserView):
 
     def __call__(self):
         """Render the login form template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -347,12 +363,14 @@ class PasskeyListView(BrowserView):
     """List all registered passkeys for the current user."""
 
     def __call__(self):
-        """
-        List user's passkeys.
+        """List user's passkeys.
 
         Returns:
             JSON response with list of passkeys
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -401,12 +419,14 @@ class PasskeyDeleteView(BrowserView):
     """Delete a registered passkey."""
 
     def __call__(self):
-        """
-        Delete a passkey.
+        """Delete a passkey.
 
         Returns:
             JSON response with deletion result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -491,12 +511,14 @@ class PasskeyUpdateView(BrowserView):
     """Update passkey metadata (device name)."""
 
     def __call__(self):
-        """
-        Update passkey metadata.
+        """Update passkey metadata.
 
         Returns:
             JSON response with update result
         """
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require authentication
         if api.user.is_anonymous():
             self.request.response.setStatus(401)
@@ -593,6 +615,9 @@ class PasskeyManageView(BrowserView):
 
     def __call__(self):
         """Render the management template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
 
@@ -605,6 +630,9 @@ class EnhancedLoginView(BrowserView):
 
     def __call__(self):
         """Render the enhanced login template."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         return self.index()
 
     def standard_login_form(self):
@@ -662,6 +690,9 @@ class AAL2ChallengeView(BrowserView):
 
     def __call__(self):
         """Render the AAL2 challenge page."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Check if user is authenticated
         if api.user.is_anonymous():
             # Redirect to login page
@@ -724,6 +755,9 @@ class AAL2SettingsView(BrowserView):
 
     def __call__(self):
         """Render the AAL2 settings page."""
+        # Disable CSRF protection for WebAuthn/API calls
+        alsoProvides(self.request, IDisableCSRFProtection)
+
         # Require Manager role
         if not api.user.has_permission('Manage portal'):
             raise Unauthorized("You must be a Manager to access AAL2 settings")
