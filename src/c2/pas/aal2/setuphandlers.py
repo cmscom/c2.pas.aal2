@@ -41,7 +41,57 @@ def post_install(context):
     if context.readDataFile('c2.pas.aal2_default.txt') is None:
         return
 
+    portal = context.getSite()
+
+    # Install PAS plugin
+    install_pas_plugin(portal)
+
     logger.info("c2.pas.aal2 installed successfully")
+
+
+def install_pas_plugin(portal):
+    """Install and activate the AAL2 PAS plugin.
+
+    Args:
+        portal: Plone site object
+    """
+    from c2.pas.aal2.plugin import AAL2Plugin
+    from Products.PluggableAuthService.interfaces.plugins import (
+        IAuthenticationPlugin,
+        IExtractionPlugin,
+        IChallengePlugin,
+        ICredentialsResetPlugin,
+    )
+
+    acl_users = portal.acl_users
+    plugin_id = 'aal2_plugin'
+
+    # Check if plugin already exists
+    if plugin_id in acl_users.objectIds():
+        logger.info(f"PAS plugin '{plugin_id}' already exists")
+        return
+
+    # Create plugin
+    plugin = AAL2Plugin(plugin_id, 'AAL2 Authentication Plugin')
+    acl_users._setObject(plugin_id, plugin)
+    plugin = acl_users[plugin_id]
+
+    # Activate plugin for required interfaces
+    plugins = acl_users.plugins
+
+    interfaces_to_activate = [
+        IAuthenticationPlugin,
+        IExtractionPlugin,
+        IChallengePlugin,
+        ICredentialsResetPlugin,
+    ]
+
+    for interface in interfaces_to_activate:
+        if plugin_id not in plugins.listPluginIds(interface):
+            plugins.activatePlugin(interface, plugin_id)
+            logger.info(f"Activated '{plugin_id}' for {interface.__name__}")
+
+    logger.info(f"PAS plugin '{plugin_id}' installed and activated")
 
 
 def uninstall(context):
