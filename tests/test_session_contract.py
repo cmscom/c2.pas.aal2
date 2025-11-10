@@ -13,9 +13,9 @@ These tests complement unit tests by focusing on API contracts rather than
 implementation details.
 """
 
-import pytest
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+
+import pytest
 
 
 class TestSessionAPIContract:
@@ -144,7 +144,7 @@ class TestSessionAPIStateManagement:
 
     def test_set_then_get_consistency(self, mocker):
         """Test that set_aal2_timestamp followed by get_aal2_timestamp is consistent."""
-        from c2.pas.aal2.session import set_aal2_timestamp, get_aal2_timestamp
+        from c2.pas.aal2.session import get_aal2_timestamp, set_aal2_timestamp
 
         # Create mock user
         user = mocker.Mock()
@@ -179,7 +179,7 @@ class TestSessionAPIStateManagement:
 
     def test_clear_removes_state(self, mocker):
         """Test that clear_aal2_timestamp removes all AAL2 state."""
-        from c2.pas.aal2.session import set_aal2_timestamp, get_aal2_timestamp, clear_aal2_timestamp
+        from c2.pas.aal2.session import clear_aal2_timestamp, get_aal2_timestamp, set_aal2_timestamp
 
         # Create mock user
         user = mocker.Mock()
@@ -213,8 +213,9 @@ class TestSessionAPIStateManagement:
 
     def test_multiple_sets_update_timestamp(self, mocker):
         """Test that multiple calls to set_aal2_timestamp update the timestamp."""
-        from c2.pas.aal2.session import set_aal2_timestamp, get_aal2_timestamp
         import time
+
+        from c2.pas.aal2.session import get_aal2_timestamp, set_aal2_timestamp
 
         # Create mock user
         user = mocker.Mock()
@@ -352,7 +353,7 @@ class TestSessionAPIIdempotency:
 
     def test_multiple_clear_calls_are_idempotent(self, mocker):
         """Test that multiple clear_aal2_timestamp calls are safe."""
-        from c2.pas.aal2.session import set_aal2_timestamp, clear_aal2_timestamp, get_aal2_timestamp
+        from c2.pas.aal2.session import clear_aal2_timestamp, get_aal2_timestamp, set_aal2_timestamp
 
         # Create mock user
         user = mocker.Mock()
@@ -390,7 +391,7 @@ class TestSessionAPIIdempotency:
 
     def test_is_aal2_valid_is_pure_function(self, mocker):
         """Test that is_aal2_valid doesn't modify state (pure function)."""
-        from c2.pas.aal2.session import set_aal2_timestamp, is_aal2_valid, get_aal2_timestamp
+        from c2.pas.aal2.session import get_aal2_timestamp, is_aal2_valid, set_aal2_timestamp
 
         # Create mock user
         user = mocker.Mock()

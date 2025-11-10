@@ -6,8 +6,8 @@ This package provides a template for implementing AAL2 (Authenticator Assurance 
 authentication support in Plone through the Pluggable Authentication Service (PAS).
 """
 
-from c2.pas.aal2.plugin import AAL2Plugin
 from c2.pas.aal2.interfaces import IAAL2Plugin
+from c2.pas.aal2.plugin import AAL2Plugin
 
 __all__ = [
     'AAL2Plugin',

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Test PAS plugin registration."""
 
-import pytest
+from Products.PluggableAuthService.interfaces.plugins import (
+    IAuthenticationPlugin,
+    IExtractionPlugin,
+)
 from zope.interface.verify import verifyClass
-from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
-from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
 
 
 def test_plugin_implements_authentication_interface():

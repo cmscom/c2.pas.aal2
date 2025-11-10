@@ -5,31 +5,34 @@ This module provides the AAL2 authentication plugin for Plone's Pluggable
 Authentication Service (PAS) with WebAuthn-based passkey authentication.
 """
 
-from zope.interface import implementer
-from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
-from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
-from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
-from Products.PluggableAuthService.interfaces.plugins import IValidationPlugin
-from zope.session.interfaces import ISession
 import logging
 
-from c2.pas.aal2.interfaces import IAAL2Plugin
-from c2.pas.aal2.credential import get_user_passkeys, get_passkey
-from c2.pas.aal2.session import set_aal2_timestamp, is_aal2_valid
-from c2.pas.aal2.policy import is_aal2_required
-from c2.pas.aal2.utils.webauthn import (
-    create_registration_options,
-    verify_registration,
-    create_authentication_options,
-    verify_authentication,
+from Products.PluggableAuthService.interfaces.plugins import (
+    IAuthenticationPlugin,
+    IExtractionPlugin,
+    IValidationPlugin,
 )
+from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
+from zope.interface import implementer
+from zope.session.interfaces import ISession
+
+from c2.pas.aal2.credential import get_passkey, get_user_passkeys
+from c2.pas.aal2.interfaces import IAAL2Plugin
+from c2.pas.aal2.policy import is_aal2_required
+from c2.pas.aal2.session import is_aal2_valid, set_aal2_timestamp
 from c2.pas.aal2.utils.audit import (
-    log_registration_start,
-    log_registration_success,
-    log_registration_failure,
+    log_authentication_failure,
     log_authentication_start,
     log_authentication_success,
-    log_authentication_failure,
+    log_registration_failure,
+    log_registration_start,
+    log_registration_success,
+)
+from c2.pas.aal2.utils.webauthn import (
+    create_authentication_options,
+    create_registration_options,
+    verify_authentication,
+    verify_registration,
 )
 
 logger = logging.getLogger('c2.pas.aal2.plugin')
@@ -78,7 +81,7 @@ class AAL2Plugin(BasePlugin):
             request: The HTTP request object
 
         Returns:
-            dict: Credentials dict with 'passkey_assertion' or empty dict
+            dict: Credentials dict with 'passkey_credential' or None
         """
         # Check if this is a passkey authentication request
         # We look for a special marker in the request
@@ -91,13 +94,13 @@ class AAL2Plugin(BasePlugin):
                 if credential and username:
                     return {
                         'extractor': 'passkey',
-                        'passkey_assertion': credential,
+                        'passkey_credential': credential,
                         'login': username,
                     }
             except Exception as e:
                 logger.error(f"Failed to extract passkey credentials: {e}", exc_info=True)
 
-        return {}
+        return None
 
     # IAuthenticationPlugin implementation
     def authenticateCredentials(self, credentials):
@@ -111,15 +114,15 @@ class AAL2Plugin(BasePlugin):
         Returns:
             tuple: (user_id, login) on success, or None on failure
         """
-        # Only handle passkey credentials
-        if credentials.get('extractor') != 'passkey':
+        # Only handle passkey credentials - check for passkey_credential key
+        if 'passkey_credential' not in credentials:
             return None
 
         try:
-            assertion = credentials.get('passkey_assertion')
+            credential = credentials.get('passkey_credential')
             username = credentials.get('login')
 
-            if not assertion or not username:
+            if not credential or not username:
                 return None
 
             # Get user object
@@ -130,10 +133,10 @@ class AAL2Plugin(BasePlugin):
                 logger.warning(f"User not found: {username}")
                 return None
 
-            # Get the credential ID from the assertion
-            credential_id = assertion.get('id')
+            # Get the credential ID from the credential
+            credential_id = credential.get('id')
             if not credential_id:
-                logger.warning("No credential ID in assertion")
+                logger.warning("No credential ID in credential")
                 return None
 
             # Get stored passkey
@@ -142,7 +145,7 @@ class AAL2Plugin(BasePlugin):
                 logger.warning(f"Passkey not found for user {username}")
                 return None
 
-            # Verify the assertion
+            # Verify the credential
             # Note: The actual verification happens in the login view
             # This method just confirms the credential exists
             # The view does the cryptographic verification
@@ -438,7 +441,7 @@ class AAL2Plugin(BasePlugin):
             options = create_authentication_options(
                 rp_id=rp_id,
                 allow_credentials=allow_credentials if allow_credentials else None,
-                user_verification='preferred',
+                user_verification='preferred',  # lowercase per webauthn spec
             )
 
             # Store challenge in session

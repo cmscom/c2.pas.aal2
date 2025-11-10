@@ -5,9 +5,10 @@ This module provides functions to manage AAL2 authentication timestamps
 and validate 15-minute session windows for AAL2-compliant authentication.
 """
 
-from datetime import datetime, timedelta
-from zope.annotation.interfaces import IAnnotations
 import logging
+from datetime import datetime, timedelta
+
+from zope.annotation.interfaces import IAnnotations
 
 logger = logging.getLogger('c2.pas.aal2.session')
 

@@ -8,9 +8,9 @@ This module tests the AAL2 policy functions including:
 - Step-up challenge URL generation
 """
 
-import pytest
 from datetime import datetime, timedelta
-from zope.annotation.interfaces import IAnnotations
+
+import pytest
 
 
 @pytest.fixture
@@ -108,7 +108,7 @@ class TestIsAAL2Required:
 
     def test_is_aal2_required_set_true(self, mock_content, mocker):
         """Test checking AAL2 requirement when set to True."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Mock IAnnotations
         mocker.patch('c2.pas.aal2.policy.IAnnotations', return_value=mock_content._annotations_adapter)
@@ -123,7 +123,7 @@ class TestIsAAL2Required:
 
     def test_is_aal2_required_set_false(self, mock_content, mocker):
         """Test checking AAL2 requirement when explicitly set to False."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Mock IAnnotations
         mocker.patch('c2.pas.aal2.policy.IAnnotations', return_value=mock_content._annotations_adapter)
@@ -142,7 +142,7 @@ class TestSetAAL2Required:
 
     def test_set_aal2_required_true(self, mock_content, mocker):
         """Test setting AAL2 requirement to True."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Mock IAnnotations
         mocker.patch('c2.pas.aal2.policy.IAnnotations', return_value=mock_content._annotations_adapter)
@@ -155,7 +155,7 @@ class TestSetAAL2Required:
 
     def test_set_aal2_required_false(self, mock_content, mocker):
         """Test setting AAL2 requirement to False."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Mock IAnnotations
         mocker.patch('c2.pas.aal2.policy.IAnnotations', return_value=mock_content._annotations_adapter)
@@ -196,7 +196,7 @@ class TestCheckAAL2Access:
 
     def test_check_aal2_access_required_and_valid(self, mock_content, mock_user, mock_request, mocker):
         """Test AAL2 access check when AAL2 is required and user has valid authentication."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
         from c2.pas.aal2.session import set_aal2_timestamp
 
         # Mock IAnnotations
@@ -233,7 +233,7 @@ class TestCheckAAL2Access:
 
     def test_check_aal2_access_required_and_expired(self, mock_content, mock_user, mock_request, mocker):
         """Test AAL2 access check when AAL2 is required but authentication expired."""
-        from c2.pas.aal2.policy import set_aal2_required, check_aal2_access
+        from c2.pas.aal2.policy import check_aal2_access, set_aal2_required
 
         # Mock IAnnotations
         def annotations_factory(obj):
@@ -298,9 +298,9 @@ class TestPolicyIntegration:
     def test_full_aal2_policy_lifecycle(self, mock_content, mock_user, mock_request, mocker):
         """Test complete AAL2 policy lifecycle."""
         from c2.pas.aal2.policy import (
+            check_aal2_access,
             is_aal2_required,
             set_aal2_required,
-            check_aal2_access,
         )
         from c2.pas.aal2.session import set_aal2_timestamp
 

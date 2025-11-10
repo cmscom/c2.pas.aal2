@@ -5,10 +5,11 @@ This module provides functions to manage AAL2 authentication policies
 for Plone content objects, including setting requirements and checking access.
 """
 
-from zope.annotation.interfaces import IAnnotations
-from plone.memoize import ram
 import logging
 import time
+
+from plone.memoize import ram
+from zope.annotation.interfaces import IAnnotations
 
 from c2.pas.aal2.session import is_aal2_valid
 

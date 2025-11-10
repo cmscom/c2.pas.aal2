@@ -9,9 +9,9 @@ This module tests the AAL2 timestamp management functions including:
 - Clearing AAL2 timestamps
 """
 
-import pytest
 from datetime import datetime, timedelta
-from zope.annotation.interfaces import IAnnotations
+
+import pytest
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ class TestSetAAL2Timestamp:
 
     def test_set_aal2_timestamp_basic(self, mock_user, mocker):
         """Test setting AAL2 timestamp for a user."""
-        from c2.pas.aal2.session import set_aal2_timestamp, get_aal2_timestamp
+        from c2.pas.aal2.session import get_aal2_timestamp, set_aal2_timestamp
 
         # Set timestamp
         set_aal2_timestamp(mock_user)
@@ -67,7 +67,7 @@ class TestSetAAL2Timestamp:
 
     def test_set_aal2_timestamp_with_credential_id(self, mock_user):
         """Test setting AAL2 timestamp with credential ID."""
-        from c2.pas.aal2.session import set_aal2_timestamp, get_aal2_timestamp
+        from c2.pas.aal2.session import get_aal2_timestamp, set_aal2_timestamp
 
         credential_id = 'AQIDBAUGBwgBAgMEBQYHCAECAwQFBgcI'
         set_aal2_timestamp(mock_user, credential_id=credential_id)
@@ -112,7 +112,7 @@ class TestIsAAL2Valid:
 
     def test_is_aal2_valid_fresh_timestamp(self, mock_user, mocker):
         """Test AAL2 validity for fresh timestamp (within 15 minutes)."""
-        from c2.pas.aal2.session import is_aal2_valid, get_aal2_timestamp
+        from c2.pas.aal2.session import is_aal2_valid
 
         # Mock fresh timestamp (5 minutes ago)
         fresh_timestamp = datetime.utcnow() - timedelta(minutes=5)
@@ -185,7 +185,7 @@ class TestGetAAL2Expiry:
 
     def test_get_aal2_expiry_with_timestamp(self, mock_user, mocker):
         """Test getting AAL2 expiry time when timestamp exists."""
-        from c2.pas.aal2.session import get_aal2_expiry, AAL2_TIMEOUT_SECONDS
+        from c2.pas.aal2.session import AAL2_TIMEOUT_SECONDS, get_aal2_expiry
 
         # Mock timestamp
         timestamp = datetime.utcnow() - timedelta(minutes=5)
@@ -218,7 +218,7 @@ class TestClearAAL2Timestamp:
 
     def test_clear_aal2_timestamp(self, mock_user, mocker):
         """Test clearing AAL2 timestamp."""
-        from c2.pas.aal2.session import clear_aal2_timestamp, set_aal2_timestamp, get_aal2_timestamp
+        from c2.pas.aal2.session import clear_aal2_timestamp, get_aal2_timestamp, set_aal2_timestamp
 
         # First set a timestamp
         set_aal2_timestamp(mock_user)
@@ -237,10 +237,9 @@ class TestSessionIntegration:
     def test_full_session_lifecycle(self, mock_user, mocker):
         """Test complete AAL2 session lifecycle."""
         from c2.pas.aal2.session import (
-            set_aal2_timestamp,
-            get_aal2_timestamp,
-            is_aal2_valid,
             clear_aal2_timestamp,
+            is_aal2_valid,
+            set_aal2_timestamp,
         )
 
         # Initial state: no timestamp

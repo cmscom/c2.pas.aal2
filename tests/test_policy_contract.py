@@ -13,7 +13,6 @@ These tests complement unit tests by focusing on API contracts rather than
 implementation details.
 """
 
-import pytest
 
 
 class TestPolicyAPIContract:
@@ -143,7 +142,7 @@ class TestPolicyAPIStateManagement:
 
     def test_set_then_check_consistency(self, mocker):
         """Test that set_aal2_required followed by is_aal2_required is consistent."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Create mock content
         content = mocker.Mock()
@@ -172,7 +171,7 @@ class TestPolicyAPIStateManagement:
 
     def test_role_based_requirement_overrides_content(self, mocker):
         """Test that user role requirement takes precedence."""
-        from c2.pas.aal2.policy import set_aal2_required, is_aal2_required
+        from c2.pas.aal2.policy import is_aal2_required, set_aal2_required
 
         # Create mock content (no AAL2 requirement)
         content = mocker.Mock()

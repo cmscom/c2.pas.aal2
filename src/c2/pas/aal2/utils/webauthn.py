@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 """WebAuthn ceremony wrapper functions using py_webauthn library."""
 
+import logging
+
 from webauthn import (
-    generate_registration_options,
-    verify_registration_response,
     generate_authentication_options,
+    generate_registration_options,
     verify_authentication_response,
+    verify_registration_response,
 )
 from webauthn.helpers.structs import (
-    PublicKeyCredentialDescriptor,
-    AuthenticatorSelectionCriteria,
-    UserVerificationRequirement,
     AttestationConveyancePreference,
     AuthenticatorAttachment,
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
 )
-import logging
 
 logger = logging.getLogger('c2.pas.aal2.utils.webauthn')
 
@@ -137,7 +138,7 @@ def create_authentication_options(rp_id, allow_credentials=None, user_verificati
         options = generate_authentication_options(
             rp_id=rp_id,
             allow_credentials=allowed_creds if allowed_creds else None,
-            user_verification=UserVerificationRequirement(user_verification.upper()),
+            user_verification=UserVerificationRequirement(user_verification.lower()),
             timeout=60000,  # 60 seconds
         )
 

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """ZODB annotation utility functions for passkey storage."""
 
-from zope.annotation.interfaces import IAnnotations
-from persistent.dict import PersistentDict
 import logging
+
+from persistent.dict import PersistentDict
+from zope.annotation.interfaces import IAnnotations
 
 logger = logging.getLogger('c2.pas.aal2.utils.storage')
 

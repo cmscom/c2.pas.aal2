@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 version = '1.0.0'
 
@@ -49,9 +49,6 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
 
-    # 名前空間パッケージの宣言
-    namespace_packages=['c2', 'c2.pas'],
-
     # ZCMLファイルを含める
     include_package_data=True,
     zip_safe=False,
@@ -68,8 +65,15 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest',
-            'pytest-cov',
+            'pytest>=8.0',
+            'pytest-cov>=5.0',
+        ],
+        'dev': [
+            'pytest>=8.0',
+            'pytest-cov>=5.0',
+            'pytest-xdist>=3.5',
+            'pyright>=1.1',
+            'ruff>=0.8.0,<0.9.0',
         ],
     },
 
@@ -77,8 +81,9 @@ setup(
     python_requires='>=3.11',
 
     # エントリーポイント
-    entry_points="""
-    [z3c.autoinclude.plugin]
-    target = plone
-    """,
+    entry_points={
+        'z3c.autoinclude.plugin': [
+            'target = plone',
+        ],
+    },
 )
