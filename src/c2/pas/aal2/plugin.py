@@ -733,29 +733,53 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Use plone.session's ticket authentication
-            # Create a secure authentication ticket
-            from plone.session.tktauth import createTicket
-            
-            # Get remote address for ticket
-            remote_addr = request.get('HTTP_X_FORWARDED_FOR', 
-                                     request.get('REMOTE_ADDR', ''))
-            
-            # Create ticket with user ID
-            ticket = createTicket(
-                secret='',  # Will use site's secret
-                userid=login,
-                remote_addr=remote_addr,
-            )
-            
-            # Set the __ac cookie with the ticket
-            response.setCookie(
-                '__ac',
-                ticket,
-                path='/',
-                # In production, use secure=True for HTTPS
-            )
-            
-            logger.info(f"Set authentication ticket for user {login}")
+            # Get the session plugin to create a proper ticket
+            portal = None
+            try:
+                from plone import api
+                portal = api.portal.get()
+            except Exception:
+                pass
+
+            if portal:
+                # Get the secret from portal
+                from plone.session.tktauth import createTicket
+
+                # Get remote address
+                remote_addr = request.get('HTTP_X_FORWARDED_FOR',
+                                         request.get('REMOTE_ADDR', ''))
+
+                # Get the site's secret (used by plone.session)
+                # This is typically stored in PAS session plugin
+                secret = ''
+                try:
+                    session_plugin = portal.acl_users.get('session')
+                    if session_plugin and hasattr(session_plugin, 'secret'):
+                        secret = session_plugin.secret
+                except Exception:
+                    pass
+
+                # Create ticket with proper signature
+                # createTicket(secret, userid, tokens=(), user_data='', ip='', timestamp=None, digest_algo='sha512')
+                ticket = createTicket(
+                    secret,
+                    login,
+                    tokens=(),
+                    user_data='',
+                    ip=remote_addr,
+                )
+
+                # Set the __ac cookie with the ticket
+                response.setCookie(
+                    '__ac',
+                    ticket,
+                    path='/',
+                    # In production, use secure=True for HTTPS
+                )
+
+                logger.info(f"Set authentication ticket for user {login}")
+            else:
+                raise Exception("Portal not available")
             
         except Exception as e:
             logger.error(f"Failed to update credentials for {login}: {e}", exc_info=True)
