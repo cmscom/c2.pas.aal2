@@ -8,6 +8,7 @@ authentication support in Plone through the Pluggable Authentication Service (PA
 
 from c2.pas.aal2.plugin import AAL2Plugin
 from c2.pas.aal2.interfaces import IAAL2Plugin
+from c2.pas.aal2 import permissions as _permissions
 
 __all__ = [
     'AAL2Plugin',
