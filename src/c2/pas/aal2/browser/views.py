@@ -310,7 +310,7 @@ class PasskeyLoginVerifyView(BrowserView):
 
             # Create session by calling the updateCredentials hook
             # This will set the __ac cookie
-            acl_users._updateCredentials(self.request, self.request.response, user_id, '')
+            acl_users.updateCredentials(self.request, self.request.response, user_id, '')
 
             # Get redirect URL (typically portal URL)
             portal = api.portal.get()
