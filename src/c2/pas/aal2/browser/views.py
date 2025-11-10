@@ -309,32 +309,34 @@ class PasskeyLoginVerifyView(BrowserView):
                 raise ValueError("User not found after verification")
 
             # Create authenticated session using Plone's session management
-            # This is the recommended way to establish a login session
-            from plone.session.tktauth import createTicket
+            from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
             # Get the session plugin
             session_plugin = None
-            for plugin_name in acl_users.plugins.listPluginIds('ICredentialsUpdatePlugin'):
-                plugin = acl_users.plugins[plugin_name]
-                if hasattr(plugin, 'createTicket') or 'session' in plugin_name.lower():
-                    session_plugin = plugin
-                    break
-
-            if session_plugin and hasattr(session_plugin, 'createTicket'):
-                # Use plone.session to create ticket
-                ticket = session_plugin.createTicket(user_id)
-                session_plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                logger.info(f"Created session ticket for user {user_id}")
-            else:
-                # Fallback: set credentials directly for all update plugins
-                for plugin_name in acl_users.plugins.listPluginIds('ICredentialsUpdatePlugin'):
+            try:
+                for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
                     plugin = acl_users.plugins[plugin_name]
-                    if hasattr(plugin, 'updateCredentials'):
-                        try:
-                            plugin.updateCredentials(self.request, self.request.response, user_id, '')
-                            logger.info(f"Updated credentials via plugin: {plugin_name}")
-                        except Exception as e:
-                            logger.warning(f"Plugin {plugin_name} failed: {e}")
+                    if hasattr(plugin, 'createTicket') or 'session' in plugin_name.lower():
+                        session_plugin = plugin
+                        break
+
+                if session_plugin and hasattr(session_plugin, 'createTicket'):
+                    # Use plone.session to create ticket
+                    ticket = session_plugin.createTicket(user_id)
+                    session_plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                    logger.info(f"Created session ticket for user {user_id}")
+                else:
+                    # Fallback: set credentials directly for all update plugins
+                    for plugin_name in acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin):
+                        plugin = acl_users.plugins[plugin_name]
+                        if hasattr(plugin, 'updateCredentials'):
+                            try:
+                                plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                                logger.info(f"Updated credentials via plugin: {plugin_name}")
+                            except Exception as e:
+                                logger.warning(f"Plugin {plugin_name} failed: {e}")
+            except Exception as e:
+                logger.error(f"Failed to update credentials: {e}", exc_info=True)
 
             # Get redirect URL (typically portal URL)
             portal = api.portal.get()
