@@ -357,10 +357,13 @@ class AAL2Plugin(BasePlugin):
                 raise ValueError("No registration challenge found in session")
 
             # Get site configuration
-            rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
-            expected_origin = f"https://{rp_id}"
+            http_host = request.get('HTTP_HOST', 'localhost')
+            rp_id = http_host.split(':')[0]  # RP ID is hostname without port
+
+            # Origin includes protocol and port
+            expected_origin = f"https://{http_host}"
             if 'localhost' in rp_id or '127.0.0.1' in rp_id:
-                expected_origin = f"http://{rp_id}"  # Allow HTTP for localhost
+                expected_origin = f"http://{http_host}"  # Allow HTTP for localhost
 
             # Verify registration
             verification = verify_registration(
@@ -503,10 +506,13 @@ class AAL2Plugin(BasePlugin):
             passkey = get_passkey(authenticated_user, credential_id)
 
             # Get site configuration
-            rp_id = request.get('HTTP_HOST', 'localhost').split(':')[0]
-            expected_origin = f"https://{rp_id}"
+            http_host = request.get('HTTP_HOST', 'localhost')
+            rp_id = http_host.split(':')[0]  # RP ID is hostname without port
+
+            # Origin includes protocol and port
+            expected_origin = f"https://{http_host}"
             if 'localhost' in rp_id or '127.0.0.1' in rp_id:
-                expected_origin = f"http://{rp_id}"
+                expected_origin = f"http://{http_host}"  # Allow HTTP for localhost
 
             # Verify authentication
             verification = verify_authentication(
