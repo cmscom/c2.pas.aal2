@@ -745,9 +745,12 @@ class AAL2Plugin(BasePlugin):
                 # Get the secret from portal
                 from plone.session.tktauth import createTicket
 
-                # Get remote address
+                # Get remote address (must be valid IP address)
                 remote_addr = request.get('HTTP_X_FORWARDED_FOR',
                                          request.get('REMOTE_ADDR', ''))
+                # Default to localhost if no IP found
+                if not remote_addr or remote_addr == 'unknown':
+                    remote_addr = '127.0.0.1'
 
                 # Get the site's secret (used by plone.session)
                 # This is typically stored in PAS session plugin
