@@ -10,7 +10,6 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
 from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
 from Products.PluggableAuthService.interfaces.plugins import IValidationPlugin
-from zope.session.interfaces import ISession
 import logging
 
 from c2.pas.aal2.interfaces import IAAL2Plugin
@@ -321,11 +320,10 @@ class AAL2Plugin(BasePlugin):
             )
 
             # Store challenge in session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request)
             session_data['registration_challenge'] = options.challenge
             session_data['registration_user_id'] = user.getId()
-            session['c2.pas.aal2'] = session_data
+            self._set_session_data(request, session_data)
 
             # Audit log
             log_registration_start(user.getId(), request)
@@ -352,8 +350,7 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Get challenge from session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request, create=False)
             expected_challenge = session_data.get('registration_challenge')
 
             if not expected_challenge:
@@ -442,11 +439,10 @@ class AAL2Plugin(BasePlugin):
             )
 
             # Store challenge in session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request)
             session_data['authentication_challenge'] = options.challenge
             session_data['authentication_username'] = username
-            session['c2.pas.aal2'] = session_data
+            self._set_session_data(request, session_data)
 
             # Audit log
             log_authentication_start(username or 'unknown', request)
@@ -473,8 +469,7 @@ class AAL2Plugin(BasePlugin):
         """
         try:
             # Get challenge from session
-            session = ISession(request)
-            session_data = session.get('c2.pas.aal2', {})
+            session_data = self._get_session_data(request, create=False)
             expected_challenge = session_data.get('authentication_challenge')
 
             if not expected_challenge:
@@ -572,3 +567,37 @@ class AAL2Plugin(BasePlugin):
                 return request.PARENTS[-1]
             except (AttributeError, IndexError):
                 return None
+
+    def _get_session_data(self, request, create=True):
+        """Helper method to get session data (Plone 6 compatible).
+
+        Args:
+            request: HTTP request object
+            create: Whether to create session data if not exists
+
+        Returns:
+            dict: Session data dictionary, or empty dict if not available
+        """
+        try:
+            # Plone 6: Use request.SESSION directly
+            if hasattr(request, 'SESSION'):
+                session = request.SESSION
+                if 'c2.pas.aal2' not in session and create:
+                    session['c2.pas.aal2'] = {}
+                return session.get('c2.pas.aal2', {})
+        except Exception as e:
+            logger.warning(f"Could not access session: {e}")
+        return {}
+
+    def _set_session_data(self, request, data):
+        """Helper method to set session data (Plone 6 compatible).
+
+        Args:
+            request: HTTP request object
+            data: Dictionary to store in session
+        """
+        try:
+            if hasattr(request, 'SESSION'):
+                request.SESSION['c2.pas.aal2'] = data
+        except Exception as e:
+            logger.warning(f"Could not set session data: {e}")
