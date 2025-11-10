@@ -13,6 +13,7 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
     AttestationConveyancePreference,
     AuthenticatorAttachment,
+    AuthenticatorTransport,
 )
 import logging
 
@@ -126,10 +127,23 @@ def create_authentication_options(rp_id, allow_credentials=None, user_verificati
         allowed_creds = []
         if allow_credentials:
             for cred in allow_credentials:
+                # Convert transport strings to AuthenticatorTransport enums
+                transports = []
+                for transport in cred.get('transports', []):
+                    try:
+                        if isinstance(transport, str):
+                            transports.append(AuthenticatorTransport(transport))
+                        else:
+                            transports.append(transport)
+                    except ValueError:
+                        # Skip invalid transport values
+                        logger.warning(f"Invalid transport value: {transport}")
+                        continue
+
                 allowed_creds.append(
                     PublicKeyCredentialDescriptor(
                         id=cred.get('id', cred.get('credential_id')),
-                        transports=cred.get('transports', [])
+                        transports=transports if transports else None
                     )
                 )
 
