@@ -73,13 +73,15 @@ class AAL2Plugin(BasePlugin):
     def extractCredentials(self, request):
         """Extract credentials from the request.
 
-        This implementation extracts WebAuthn assertion credentials from POST requests.
+        This implementation handles two types of credential extraction:
+        1. WebAuthn assertion credentials for passkey login
+        2. Authentication ticket validation from __ac cookie
 
         Args:
             request: The HTTP request object
 
         Returns:
-            dict: Credentials dict with 'passkey_assertion' or empty dict
+            dict: Credentials dict or empty dict
         """
         # Check if this is a passkey authentication request
         # We look for a special marker in the request
@@ -98,13 +100,67 @@ class AAL2Plugin(BasePlugin):
             except Exception as e:
                 logger.error(f"Failed to extract passkey credentials: {e}", exc_info=True)
 
+        # Check for __ac cookie with authentication ticket
+        # Try to get cookie from request - Plone/Zope automatically extracts cookies
+        cookie = request.get('__ac')
+        if not cookie and hasattr(request, 'cookies'):
+            # Fallback: try cookies attribute
+            cookie = request.cookies.get('__ac')
+
+        if cookie:
+            try:
+                from urllib.parse import unquote
+                from plone.session.tktauth import validateTicket
+
+                # Unquote the cookie value and convert back to bytes
+                ticket_str = unquote(cookie)
+                # Convert string back to bytes preserving byte values
+                ticket = ticket_str.encode('latin-1')
+
+                # Get plugin secret
+                secret = self._get_or_create_secret()
+
+                # Get client IP for validation (tickets are IP-bound for security)
+                remote_addr = request.get('HTTP_X_FORWARDED_FOR',
+                                         request.get('REMOTE_ADDR', '127.0.0.1'))
+                if ',' in remote_addr:
+                    remote_addr = remote_addr.split(',')[0].strip()
+                if not remote_addr or remote_addr == 'unknown':
+                    remote_addr = '127.0.0.1'
+
+                # Validate the ticket
+                # Returns (digest, userid, tokens, user_data, timestamp) if valid, or None if invalid
+                result = validateTicket(
+                    secret=secret,
+                    ticket=ticket,
+                    ip=remote_addr,
+                    timeout=86400 * 7,  # 7 days timeout
+                    mod_auth_tkt=False,  # Use HMAC SHA-256 (more secure)
+                )
+
+                if result:
+                    digest, userid, tokens, user_data, timestamp = result
+                    logger.debug(f"Valid authentication ticket for user {userid}")
+                    return {
+                        'extractor': 'aal2_ticket',
+                        'login': userid,
+                        'aal2_authenticated': True,
+                    }
+                else:
+                    logger.debug("Invalid authentication ticket")
+
+            except Exception as e:
+                logger.debug(f"Failed to validate authentication ticket: {e}")
+
         return {}
 
     # IAuthenticationPlugin implementation
     def authenticateCredentials(self, credentials):
         """Authenticate the provided credentials.
 
-        This implementation authenticates WebAuthn passkey assertions.
+        This implementation handles two types of authentication:
+        1. WebAuthn passkey assertions (initial login)
+        2. Ticket-based authentication (subsequent requests)
 
         Args:
             credentials (dict): The credentials to authenticate
@@ -112,8 +168,19 @@ class AAL2Plugin(BasePlugin):
         Returns:
             tuple: (user_id, login) on success, or None on failure
         """
-        # Only handle passkey credentials
-        if credentials.get('extractor') != 'passkey':
+        extractor = credentials.get('extractor')
+
+        # Handle ticket-based authentication
+        if extractor == 'aal2_ticket':
+            username = credentials.get('login')
+            if username:
+                # Ticket was already validated in extractCredentials
+                logger.debug(f"Authenticated user {username} via AAL2 ticket")
+                return (username, username)
+            return None
+
+        # Handle passkey credentials
+        if extractor != 'passkey':
             return None
 
         try:
@@ -722,8 +789,8 @@ class AAL2Plugin(BasePlugin):
     def updateCredentials(self, request, response, login, new_password):
         """Update credentials after successful authentication.
 
-        This method delegates to the session plugin to set the authentication
-        cookie properly.
+        Creates a signed authentication ticket and sets it as a cookie.
+        This is a custom implementation independent of plone.session.
 
         Args:
             request: HTTP request object
@@ -732,45 +799,73 @@ class AAL2Plugin(BasePlugin):
             new_password: Password (not used for passkey auth)
         """
         try:
-            # Get portal and session plugin
-            from plone import api
-            portal = api.portal.get()
+            from plone.session.tktauth import createTicket
+            import time
+            from urllib.parse import quote
 
-            if not portal:
-                raise Exception("Portal not available")
+            # Get or create plugin secret for ticket signing
+            secret = self._get_or_create_secret()
 
-            # Get the session plugin
-            session_plugin = portal.acl_users.get('session')
+            # Get client IP address
+            remote_addr = request.get('HTTP_X_FORWARDED_FOR',
+                                     request.get('REMOTE_ADDR', '127.0.0.1'))
+            if ',' in remote_addr:
+                remote_addr = remote_addr.split(',')[0].strip()
 
-            if session_plugin and hasattr(session_plugin, 'updateCredentials'):
-                # Ensure session plugin has a secret
-                if hasattr(session_plugin, 'secret'):
-                    if not session_plugin.secret:
-                        import secrets
-                        session_plugin.secret = secrets.token_hex(32)
-                        logger.info(f"Generated secret for session plugin")
+            # Validate IP address
+            if not remote_addr or remote_addr == 'unknown':
+                remote_addr = '127.0.0.1'
 
-                # Call session plugin's updateCredentials
-                # This will properly create and set the __ac cookie
-                session_plugin.updateCredentials(request, response, login, new_password)
-                logger.info(f"Delegated credential update to session plugin for user {login}")
-            else:
-                raise Exception("Session plugin not available or doesn't support updateCredentials")
-            
+            # Create authentication ticket
+            # Format: digest + timestamp + userid + tokens + user_data
+            ticket = createTicket(
+                secret=secret,
+                userid=login,
+                tokens=(),  # No additional tokens needed
+                user_data='',  # No extra user data
+                ip=remote_addr,
+                timestamp=int(time.time()),
+                mod_auth_tkt=False,  # Use HMAC SHA-256 (more secure)
+            )
+
+            # Set the authentication cookie
+            # Note: ticket is bytes, we need to quote it for cookie storage
+            # Plone expects the raw bytes quoted, not base64 encoded
+            if isinstance(ticket, bytes):
+                ticket = ticket.decode('latin-1')  # Preserve byte values
+
+            response.setCookie(
+                '__ac',
+                quote(ticket),
+                path='/',
+                secure=False,  # Allow HTTP for development
+                http_only=True,  # Prevent JavaScript access
+            )
+
+            logger.info(f"Set AAL2 authentication cookie for user {login} (IP: {remote_addr})")
+
         except Exception as e:
-            logger.error(f"Failed to update credentials for {login}: {e}", exc_info=True)
-            
-            # Fallback: try simple base64 encoding
+            logger.error(f"Failed to set authentication cookie for {login}: {e}", exc_info=True)
+
+    def _get_or_create_secret(self):
+        """Get or create a secret for ticket signing.
+
+        The secret is stored as a plugin attribute and persisted in ZODB.
+        If no secret exists, a new one is generated automatically.
+
+        Returns:
+            bytes: Secret for ticket signing
+        """
+        if not hasattr(self, '_aal2_secret') or not self._aal2_secret:
+            import secrets
+            # Generate a 64-byte (512-bit) random secret
+            self._aal2_secret = secrets.token_bytes(64)
+            logger.info("Generated new AAL2 authentication secret")
+
+            # Mark object as changed for ZODB persistence
             try:
-                import base64
-                from urllib.parse import quote
-                
-                cookie_value = base64.b64encode(f"{login}:".encode('utf-8')).decode('ascii')
-                response.setCookie(
-                    '__ac',
-                    quote(cookie_value),
-                    path='/',
-                )
-                logger.info(f"Set fallback authentication cookie for user {login}")
-            except Exception as e2:
-                logger.error(f"Fallback cookie setting also failed: {e2}", exc_info=True)
+                self._p_changed = True
+            except AttributeError:
+                pass
+
+        return self._aal2_secret
