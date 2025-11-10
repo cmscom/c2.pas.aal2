@@ -319,38 +319,17 @@ class PasskeyLoginVerifyView(BrowserView):
             # handle authentication state management (including cookies).
             from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
-            # Find and call session plugin to set authentication cookie
-            # For plone.session, we need to create a proper login ticket
-            cookie_auth_set = False
+            # Call AAL2Plugin's updateCredentials to set authentication cookie
+            # The plugin now implements ICredentialsUpdatePlugin
             try:
-                plugin_list = list(acl_users.plugins.listPluginIds(ICredentialsUpdatePlugin))
-                logger.info(f"Available ICredentialsUpdatePlugin plugins: {plugin_list}")
-
-                for plugin_name in plugin_list:
-                    plugin = acl_users[plugin_name]
-                    logger.info(f"Trying plugin: {plugin_name}, type: {type(plugin)}")
-
-                    try:
-                        # For plone.session plugin, we need to set credentials in request first
-                        if plugin_name == 'session' or 'session' in plugin_name.lower():
-                            # Set login name and password in request for session plugin
-                            # Session plugin expects these to be set
-                            self.request.form['__ac_name'] = user_id
-                            self.request.form['__ac_password'] = user_id  # Use user_id as token
-                            self.request['__ac_name'] = user_id
-                            self.request['__ac_password'] = user_id
-
-                        # Call updateCredentials
-                        plugin.updateCredentials(self.request, self.request.response, user_id, user_id)
-                        logger.info(f"Successfully set authentication cookie via plugin: {plugin_name}")
-                        cookie_auth_set = True
-                    except Exception as e:
-                        logger.warning(f"Failed to set cookie via {plugin_name}: {e}", exc_info=True)
+                plugin = acl_users.get('aal2_plugin')
+                if plugin and hasattr(plugin, 'updateCredentials'):
+                    plugin.updateCredentials(self.request, self.request.response, user_id, '')
+                    logger.info(f"Called AAL2Plugin.updateCredentials() for user {user_id}")
+                else:
+                    logger.error("AAL2Plugin not found or doesn't have updateCredentials method")
             except Exception as e:
-                logger.error(f"Error setting authentication cookie: {e}", exc_info=True)
-
-            if not cookie_auth_set:
-                logger.warning("No ICredentialsUpdatePlugin successfully set cookies - session may not persist")
+                logger.error(f"Failed to call AAL2Plugin.updateCredentials(): {e}", exc_info=True)
 
             # Also set the AUTHENTICATED_USER in current request context
             from AccessControl.SecurityManagement import newSecurityManager

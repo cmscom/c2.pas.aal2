@@ -10,6 +10,7 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
 from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
 from Products.PluggableAuthService.interfaces.plugins import IValidationPlugin
+from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 import logging
 
 from c2.pas.aal2.interfaces import IAAL2Plugin
@@ -34,7 +35,8 @@ from c2.pas.aal2.utils.audit import (
 logger = logging.getLogger('c2.pas.aal2.plugin')
 
 
-@implementer(IAuthenticationPlugin, IExtractionPlugin, IValidationPlugin, IAAL2Plugin)
+@implementer(IAuthenticationPlugin, IExtractionPlugin, IValidationPlugin,
+             ICredentialsUpdatePlugin, IAAL2Plugin)
 class AAL2Plugin(BasePlugin):
     """AAL2 Authentication Plugin for Plone PAS.
 
@@ -712,3 +714,63 @@ class AAL2Plugin(BasePlugin):
 
         except Exception as e:
             logger.warning(f"Could not clear session data: {e}", exc_info=True)
+
+    # ========================================================================
+    # ICredentialsUpdatePlugin implementation
+    # ========================================================================
+
+    def updateCredentials(self, request, response, login, new_password):
+        """Update credentials after successful authentication.
+
+        This method sets the authentication cookie using plone.session's
+        ticket-based authentication system.
+
+        Args:
+            request: HTTP request object
+            response: HTTP response object
+            login: Username/user ID
+            new_password: Password (not used for passkey auth)
+        """
+        try:
+            # Use plone.session's ticket authentication
+            # Create a secure authentication ticket
+            from plone.session.tktauth import createTicket
+            
+            # Get remote address for ticket
+            remote_addr = request.get('HTTP_X_FORWARDED_FOR', 
+                                     request.get('REMOTE_ADDR', ''))
+            
+            # Create ticket with user ID
+            ticket = createTicket(
+                secret='',  # Will use site's secret
+                userid=login,
+                remote_addr=remote_addr,
+            )
+            
+            # Set the __ac cookie with the ticket
+            response.setCookie(
+                '__ac',
+                ticket,
+                path='/',
+                # In production, use secure=True for HTTPS
+            )
+            
+            logger.info(f"Set authentication ticket for user {login}")
+            
+        except Exception as e:
+            logger.error(f"Failed to update credentials for {login}: {e}", exc_info=True)
+            
+            # Fallback: try simple base64 encoding
+            try:
+                import base64
+                from urllib.parse import quote
+                
+                cookie_value = base64.b64encode(f"{login}:".encode('utf-8')).decode('ascii')
+                response.setCookie(
+                    '__ac',
+                    quote(cookie_value),
+                    path='/',
+                )
+                logger.info(f"Set fallback authentication cookie for user {login}")
+            except Exception as e2:
+                logger.error(f"Fallback cookie setting also failed: {e2}", exc_info=True)

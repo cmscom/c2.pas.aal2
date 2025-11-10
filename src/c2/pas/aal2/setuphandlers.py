@@ -59,6 +59,7 @@ def install_pas_plugin(portal):
     from Products.PluggableAuthService.interfaces.plugins import (
         IAuthenticationPlugin,
         IExtractionPlugin,
+        ICredentialsUpdatePlugin,
     )
 
     acl_users = portal.acl_users
@@ -75,12 +76,14 @@ def install_pas_plugin(portal):
     plugin = acl_users[plugin_id]
 
     # Activate plugin for interfaces it actually implements
-    # Note: AAL2Plugin implements IAuthenticationPlugin, IExtractionPlugin, IValidationPlugin
+    # Note: AAL2Plugin implements IAuthenticationPlugin, IExtractionPlugin,
+    #       IValidationPlugin, ICredentialsUpdatePlugin
     plugins = acl_users.plugins
 
     interfaces_to_activate = [
         IAuthenticationPlugin,
         IExtractionPlugin,
+        ICredentialsUpdatePlugin,
     ]
 
     for interface in interfaces_to_activate:
