@@ -14,4 +14,15 @@
       profile="c2.pas.aal2:default"
       />
 
+  <!-- Upgrade step to version 1007 -->
+  <genericsetup:upgradeStep
+      title="Fix registry key names"
+      description="Migrates registry keys to unified naming scheme"
+      source="1006"
+      destination="1007"
+      handler=".v1007.upgrade_to_1007"
+      sortkey="1"
+      profile="c2.pas.aal2:default"
+      />
+
 </configure>

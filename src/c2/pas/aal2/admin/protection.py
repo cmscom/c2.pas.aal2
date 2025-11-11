@@ -35,7 +35,7 @@ def _pattern_cache_key(method):
     """
     try:
         patterns = api.portal.get_registry_record(
-            'c2.pas.aal2.admin.protected_patterns',
+            'c2.pas.aal2.admin_protected_patterns',
             default=[]
         )
         return hash(tuple(patterns))
@@ -57,7 +57,7 @@ def get_protected_patterns():
     """
     try:
         patterns = api.portal.get_registry_record(
-            'c2.pas.aal2.admin.protected_patterns',
+            'c2.pas.aal2.admin_protected_patterns',
             default=[]
         )
         logger.debug(f"Loaded {len(patterns)} protected patterns from registry")
@@ -137,7 +137,7 @@ def check_admin_access(request, user):
 
         # Check if protection is enabled
         enabled = api.portal.get_registry_record(
-            'c2.pas.aal2.admin.enabled',
+            'c2.pas.aal2.admin_protection_enabled',
             default=True
         )
         if not enabled:
@@ -337,7 +337,7 @@ def invalidate_pattern_cache(event):
     try:
         # Check if this is an admin protection setting
         if (event.record and
-            event.record.interfaceName == 'c2.pas.aal2.admin.interfaces.IAAL2AdminSettings'):
+            event.record.interfaceName == 'c2.pas.aal2.controlpanel.interfaces.IAAL2ControlPanel'):
 
             logger.info(f"Admin protection setting changed: {event.record.__name__}")
 
