@@ -6,6 +6,7 @@ validate AAL2 session validity, and manage redirect context during challenges.
 """
 
 import fnmatch
+import os
 import time
 import logging
 from plone import api
@@ -124,6 +125,15 @@ def check_admin_access(request, user):
     """
     try:
         url = request.URL
+
+        # Check for environment variable override (emergency bypass)
+        if os.environ.get('C2_PAS_AAL2_ADMIN_PROTECTION_DISABLED'):
+            logger.warning("Admin AAL2 protection disabled via environment variable")
+            return {
+                'allowed': True,
+                'reason': 'env_disabled',
+                'redirect_url': None
+            }
 
         # Check if protection is enabled
         enabled = api.portal.get_registry_record(
