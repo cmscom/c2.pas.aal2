@@ -14,4 +14,15 @@
       profile="c2.pas.aal2:default"
       />
 
+  <!-- Upgrade from version 1005 to 1006 (Feature 006: Admin AAL2 Protection) -->
+  <genericsetup:upgradeStep
+      title="Upgrade to Feature 006: Admin AAL2 Protection"
+      description="Adds AAL2 protection for Plone administrative interfaces"
+      source="1005"
+      destination="1006"
+      handler=".upgrade_to_006.upgrade_to_006"
+      sortkey="1"
+      profile="c2.pas.aal2:default"
+      />
+
 </configure>

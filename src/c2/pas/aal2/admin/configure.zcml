@@ -1,0 +1,17 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:zcml="http://namespaces.zope.org/zcml">
+
+  <!-- Event subscriber for admin AAL2 checks -->
+  <subscriber
+      for="ZPublisher.interfaces.IPubBeforeCommit"
+      handler=".subscriber.check_admin_aal2_subscriber"
+      />
+
+  <!-- Cache invalidation for registry changes -->
+  <subscriber
+      for="plone.registry.interfaces.IRecordModifiedEvent"
+      handler=".protection.invalidate_pattern_cache"
+      />
+
+</configure>

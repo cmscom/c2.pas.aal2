@@ -1,0 +1,22 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="c2.pas.aal2">
+
+  <!-- AAL2 Admin Protection Control Panel (Feature 006: US2) -->
+  <browser:page
+      name="aal2-admin-protection-settings"
+      for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+      class=".views.AAL2AdminProtectionControlPanelView"
+      permission="cmf.ManagePortal"
+      />
+
+  <!-- Pattern Test API Endpoint (for AJAX testing) -->
+  <browser:page
+      name="aal2-pattern-test-api"
+      for="*"
+      class=".views.PatternTestAPIView"
+      permission="cmf.ManagePortal"
+      />
+
+</configure>

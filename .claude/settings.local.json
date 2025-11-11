@@ -35,7 +35,9 @@
       "Bash(src/c2/pas/aal2/storage/__init__.py)",
       "Bash(src/c2/pas/aal2/controlpanel/__init__.py)",
       "Bash(src/c2/pas/aal2/catalog/__init__.py)",
-      "Bash(/workspace/src/c2/pas/aal2/profiles/default/c2.pas.aal2_default.txt)"
+      "Bash(/workspace/src/c2/pas/aal2/profiles/default/c2.pas.aal2_default.txt)",
+      "Bash(if [ -d \"/workspace/specs/006-aal2-admin-protection/checklists\" ])",
+      "Bash(then ls /workspace/specs/006-aal2-admin-protection/checklists/*.md)"
     ],
     "deny": [],
     "ask": []

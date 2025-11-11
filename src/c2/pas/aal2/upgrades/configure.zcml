@@ -1,0 +1,28 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    i18n_domain="c2.pas.aal2">
+
+  <!-- Upgrade step to version 1006 -->
+  <genericsetup:upgradeStep
+      title="Add AAL2 Admin Protection control panel"
+      description="Registers the AAL2 Admin Protection control panel"
+      source="1005"
+      destination="1006"
+      handler=".v1006.upgrade_to_1006"
+      sortkey="1"
+      profile="c2.pas.aal2:default"
+      />
+
+  <!-- Upgrade step to version 1007 -->
+  <genericsetup:upgradeStep
+      title="Fix registry key names"
+      description="Migrates registry keys to unified naming scheme"
+      source="1006"
+      destination="1007"
+      handler=".v1007.upgrade_to_1007"
+      sortkey="1"
+      profile="c2.pas.aal2:default"
+      />
+
+</configure>

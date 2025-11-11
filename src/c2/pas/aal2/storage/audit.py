@@ -61,6 +61,11 @@ AUDIT_ACTION_TYPES = [
     # Role Management
     'aal2_role_assigned',
     'aal2_role_revoked',
+    # Admin Interface Protection (Feature 006)
+    'admin_access_allowed',
+    'admin_access_challenged',
+    'admin_challenge_success',
+    'admin_challenge_failure',
 ]
 
 

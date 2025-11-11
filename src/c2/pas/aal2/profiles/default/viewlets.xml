@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<object>
+  <order manager="plone.portalheader" skinname="*">
+    <!-- Admin AAL2 Status Viewlet (Feature 006: US4) -->
+    <!-- Show AAL2 status in admin interface header -->
+    <viewlet name="c2.pas.aal2.admin-status" insert-after="*" />
+  </order>
+
+  <hidden manager="plone.portalheader" skinname="*">
+    <!-- Hide in non-admin contexts (controlled by viewlet.available()) -->
+  </hidden>
+</object>
