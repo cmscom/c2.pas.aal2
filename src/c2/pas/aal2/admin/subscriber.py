@@ -20,7 +20,7 @@ def check_admin_aal2_subscriber(event):
     Example:
         Registered in configure.zcml:
         <subscriber
-            for="zope.publisher.interfaces.IPubBeforeCommit"
+            for="ZPublisher.interfaces.IPubBeforeCommit"
             handler=".subscriber.check_admin_aal2_subscriber"
             />
     """

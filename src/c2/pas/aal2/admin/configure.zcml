@@ -4,7 +4,7 @@
 
   <!-- Event subscriber for admin AAL2 checks -->
   <subscriber
-      for="zope.publisher.interfaces.IPubBeforeCommit"
+      for="ZPublisher.interfaces.IPubBeforeCommit"
       handler=".subscriber.check_admin_aal2_subscriber"
       />
 
