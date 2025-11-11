@@ -34,6 +34,9 @@
   <!-- Include admin protection configuration -->
   <include package=".admin" />
 
+  <!-- Include upgrade steps -->
+  <include package=".upgrades" />
+
   <!-- Register GenericSetup profile for AAL2 installation -->
   <genericsetup:registerProfile
       name="default"

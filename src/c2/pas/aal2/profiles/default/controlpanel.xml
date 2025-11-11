@@ -21,9 +21,9 @@
       title="AAL2 Admin Protection"
       action_id="aal2-admin-protection"
       appId="c2.pas.aal2"
-      category="Security"
+      category="Products"
       condition_expr=""
-      icon_expr="string:${portal_url}/++resource++plone-icon-security.svg"
+      icon_expr=""
       url_expr="string:${portal_url}/@@aal2-admin-protection-settings"
       visible="True"
       i18n:attributes="title">
