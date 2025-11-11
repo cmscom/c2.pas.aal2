@@ -140,3 +140,157 @@ class AAL2StatusViewlet(ViewletBase):
     def remaining_time(self):
         """Property alias for get_remaining_time()."""
         return self.get_remaining_time()
+
+
+class AdminAAL2StatusViewlet(ViewletBase):
+    """Viewlet to display AAL2 status in admin interface header.
+
+    This viewlet is specifically designed for administrative interfaces,
+    showing AAL2 authentication status with countdown timer and warnings
+    when approaching expiration.
+
+    Features:
+    - Real-time countdown display
+    - Warning indicator when < 2 minutes remain
+    - Only visible when accessing protected admin pages
+    - JavaScript-powered countdown timer
+    """
+
+    def available(self):
+        """Check if viewlet should be displayed.
+
+        Only show in admin/control panel context to avoid cluttering
+        regular pages. Show to authenticated users with AAL2 activity.
+        """
+        if api.user.is_anonymous():
+            return False
+
+        # Check if we're in an admin context
+        url = self.request.URL
+        admin_indicators = [
+            '/@@overview-controlpanel',
+            '/@@usergroup-',
+            '/@@security-controlpanel',
+            '/@@aal2-',
+            '/manage',
+            '/controlpanel',
+        ]
+
+        is_admin_page = any(indicator in url for indicator in admin_indicators)
+
+        if not is_admin_page:
+            return False
+
+        try:
+            from c2.pas.aal2.session import get_aal2_timestamp
+            current_user = api.user.get_current()
+
+            # Show if user has AAL2 timestamp
+            timestamp = get_aal2_timestamp(current_user)
+            return timestamp is not None
+        except Exception as e:
+            logger.warning(f"Error checking admin AAL2 viewlet availability: {e}")
+            return False
+
+    def aal2_info(self):
+        """Get comprehensive AAL2 status information.
+
+        Returns:
+            dict: Status information with keys:
+                - is_valid (bool): True if AAL2 is currently valid
+                - remaining_seconds (int): Seconds until expiration (0 if expired)
+                - remaining_minutes (int): Minutes until expiration
+                - is_warning (bool): True if < 2 minutes remain
+                - status_class (str): CSS class for status display
+                - status_message (str): User-friendly status message
+                - timestamp (str): ISO format timestamp of last AAL2 auth
+        """
+        try:
+            from c2.pas.aal2.session import get_aal2_timestamp, is_aal2_valid
+            current_user = api.user.get_current()
+
+            timestamp = get_aal2_timestamp(current_user)
+            is_valid = is_aal2_valid(current_user)
+
+            if not timestamp:
+                return {
+                    'is_valid': False,
+                    'remaining_seconds': 0,
+                    'remaining_minutes': 0,
+                    'is_warning': False,
+                    'status_class': 'aal2-admin-status-expired',
+                    'status_message': 'No AAL2 authentication',
+                    'timestamp': None,
+                }
+
+            # Calculate remaining time
+            now = datetime.utcnow()
+            elapsed = now - timestamp
+
+            # Get AAL2 session lifetime from registry (default 15 minutes)
+            try:
+                aal2_lifetime = api.portal.get_registry_record(
+                    'c2.pas.aal2.aal2_session_lifetime',
+                    default=15
+                )
+            except Exception:
+                aal2_lifetime = 15
+
+            valid_duration = timedelta(minutes=aal2_lifetime)
+            remaining = valid_duration - elapsed
+
+            remaining_seconds = max(0, int(remaining.total_seconds()))
+            remaining_minutes = max(0, int(remaining_seconds / 60))
+
+            # Determine warning state (< 2 minutes)
+            is_warning = 0 < remaining_seconds < 120
+
+            # Determine status class
+            if not is_valid or remaining_seconds == 0:
+                status_class = 'aal2-admin-status-expired'
+                status_message = 'AAL2 Expired'
+            elif is_warning:
+                status_class = 'aal2-admin-status-warning'
+                status_message = f'AAL2 expires in {remaining_minutes}m {remaining_seconds % 60}s'
+            else:
+                status_class = 'aal2-admin-status-valid'
+                status_message = f'AAL2 valid for {remaining_minutes} minutes'
+
+            return {
+                'is_valid': is_valid,
+                'remaining_seconds': remaining_seconds,
+                'remaining_minutes': remaining_minutes,
+                'is_warning': is_warning,
+                'status_class': status_class,
+                'status_message': status_message,
+                'timestamp': timestamp.isoformat() if timestamp else None,
+                'lifetime_minutes': aal2_lifetime,
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting admin AAL2 info: {e}", exc_info=True)
+            return {
+                'is_valid': False,
+                'remaining_seconds': 0,
+                'remaining_minutes': 0,
+                'is_warning': False,
+                'status_class': 'aal2-admin-status-error',
+                'status_message': 'Error checking AAL2 status',
+                'timestamp': None,
+            }
+
+    def get_refresh_url(self):
+        """Get URL to refresh AAL2 authentication.
+
+        Returns current page URL so user can re-authenticate and return here.
+        """
+        return self.request.URL
+
+    def get_challenge_url(self):
+        """Get URL to AAL2 challenge page.
+
+        Returns:
+            str: URL to admin AAL2 challenge page
+        """
+        portal = api.portal.get()
+        return portal.absolute_url() + '/@@admin-aal2-challenge'

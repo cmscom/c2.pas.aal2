@@ -1,0 +1,72 @@
+<!-- Admin AAL2 Status CSS -->
+<link rel="stylesheet"
+      type="text/css"
+      tal:attributes="href string:${context/portal_url}/++resource++c2.pas.aal2/css/admin-aal2-status.css" />
+
+<div id="admin-aal2-status-viewlet"
+     class="admin-aal2-status"
+     tal:define="info python:view.aal2_info()"
+     tal:condition="view/available"
+     tal:attributes="class python:info['status_class']">
+
+  <!-- AAL2 Status Display -->
+  <div class="aal2-status-content">
+    <!-- Status Icon -->
+    <span class="aal2-status-icon"
+          tal:condition="python:info['is_valid']">
+      🔒
+    </span>
+    <span class="aal2-status-icon aal2-icon-warning"
+          tal:condition="python:info['is_warning']">
+      ⚠️
+    </span>
+    <span class="aal2-status-icon aal2-icon-expired"
+          tal:condition="python:not info['is_valid']">
+      🔓
+    </span>
+
+    <!-- Status Text -->
+    <span class="aal2-status-text">
+      <strong>AAL2:</strong>
+      <span id="aal2-countdown-display"
+            tal:attributes="data-remaining-seconds python:info['remaining_seconds'];
+                            data-lifetime-minutes python:info.get('lifetime_minutes', 15)">
+        <span tal:condition="python:info['is_valid']">
+          <span id="aal2-minutes" tal:content="python:info['remaining_minutes']">0</span>m
+          <span id="aal2-seconds" tal:content="python:info['remaining_seconds'] % 60">0</span>s
+        </span>
+        <span tal:condition="python:not info['is_valid']"
+              class="aal2-expired-text">
+          Expired
+        </span>
+      </span>
+    </span>
+
+    <!-- Re-authenticate Link -->
+    <a class="aal2-refresh-link"
+       tal:condition="python:info['is_warning'] or not info['is_valid']"
+       tal:attributes="href view/get_challenge_url"
+       title="Re-authenticate with passkey"
+       i18n:attributes="title"
+       i18n:translate="">
+      Refresh
+    </a>
+  </div>
+
+  <!-- Hidden data for JavaScript -->
+  <script type="application/json" id="aal2-status-data">
+    {
+      "remaining_seconds": <tal:block tal:replace="python:info['remaining_seconds']" />,
+      "is_valid": <tal:block tal:replace="python:'true' if info['is_valid'] else 'false'" />,
+      "is_warning": <tal:block tal:replace="python:'true' if info['is_warning'] else 'false'" />,
+      "challenge_url": "<tal:block tal:replace="view/get_challenge_url" />",
+      "lifetime_minutes": <tal:block tal:replace="python:info.get('lifetime_minutes', 15)" />
+    }
+  </script>
+
+  <!-- Admin AAL2 Status JavaScript -->
+  <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/admin-aal2-status.js"
+          type="text/javascript">
+  </script>
+
+</div>

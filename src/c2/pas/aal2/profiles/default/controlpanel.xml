@@ -16,4 +16,18 @@
     <permission>View</permission>
   </configlet>
 
+  <!-- AAL2 Admin Protection Settings (Feature 006: US2) -->
+  <configlet
+      title="AAL2 Admin Protection"
+      action_id="aal2-admin-protection"
+      appId="c2.pas.aal2"
+      category="Security"
+      condition_expr=""
+      icon_expr="string:${portal_url}/++resource++plone-icon-security.svg"
+      url_expr="string:${portal_url}/@@aal2-admin-protection-settings"
+      visible="True"
+      i18n:attributes="title">
+    <permission>Manage portal</permission>
+  </configlet>
+
 </object>

@@ -28,6 +28,12 @@
   <!-- Include browser configuration -->
   <include package=".browser" />
 
+  <!-- Include control panel configuration -->
+  <include package=".controlpanel" />
+
+  <!-- Include admin protection configuration -->
+  <include package=".admin" />
+
   <!-- Register GenericSetup profile for AAL2 installation -->
   <genericsetup:registerProfile
       name="default"

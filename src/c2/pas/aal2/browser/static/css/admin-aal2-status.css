@@ -1,0 +1,270 @@
+/**
+ * Admin AAL2 Status Viewlet Styles
+ * Provides visual styling for AAL2 status display in admin interface
+ */
+
+/* Main status container */
+.admin-aal2-status {
+  display: inline-block;
+  padding: 0.5em 1em;
+  margin: 0 0.5em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition: all 0.3s ease;
+}
+
+/* Status content layout */
+.aal2-status-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+/* Status icon */
+.aal2-status-icon {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+/* Status text */
+.aal2-status-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.aal2-status-text strong {
+  margin-right: 0.3em;
+}
+
+/* Countdown display */
+#aal2-countdown-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+}
+
+/* Refresh link */
+.aal2-refresh-link {
+  margin-left: 0.5em;
+  padding: 0.2em 0.5em;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.85em;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.aal2-refresh-link:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+}
+
+/* Valid state (green) */
+.aal2-admin-status-valid {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.aal2-admin-status-valid .aal2-status-icon {
+  color: #28a745;
+}
+
+/* Warning state (orange/yellow) - < 2 minutes */
+.aal2-admin-status-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+.aal2-admin-status-warning .aal2-status-icon {
+  color: #ff9800;
+  animation: shake 0.5s ease-in-out;
+}
+
+.aal2-admin-status-warning .aal2-refresh-link {
+  display: inline;
+  background-color: #ffc107;
+  color: #000;
+}
+
+.aal2-admin-status-warning .aal2-refresh-link:hover {
+  background-color: #ffca28;
+}
+
+/* Expired state (red) */
+.aal2-admin-status-expired {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.aal2-admin-status-expired .aal2-status-icon {
+  color: #dc3545;
+}
+
+.aal2-admin-status-expired .aal2-refresh-link {
+  display: inline;
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.aal2-admin-status-expired .aal2-refresh-link:hover {
+  background-color: #c82333;
+}
+
+.aal2-expired-text {
+  font-weight: bold;
+  color: #dc3545;
+}
+
+/* Error state */
+.aal2-admin-status-error {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  color: #666;
+}
+
+/* Animations */
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Expiration banner */
+.aal2-expiration-banner {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 1em 1.5em;
+  border-radius: 6px;
+}
+
+.aal2-expiration-banner button {
+  margin-top: 0.5em;
+  padding: 0.4em 0.8em;
+  border: none;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #856404;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.aal2-expiration-banner button:hover {
+  background-color: #f0f0f0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .admin-aal2-status {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+  }
+
+  .aal2-status-content {
+    gap: 0.3em;
+  }
+
+  .aal2-refresh-link {
+    font-size: 0.8em;
+    padding: 0.15em 0.4em;
+  }
+}
+
+/* Dark mode support (if theme supports it) */
+@media (prefers-color-scheme: dark) {
+  .aal2-admin-status-valid {
+    background-color: #1e4620;
+    border-color: #2d5f2e;
+    color: #9acd9a;
+  }
+
+  .aal2-admin-status-warning {
+    background-color: #4d3800;
+    border-color: #6d5000;
+    color: #ffd966;
+  }
+
+  .aal2-admin-status-expired {
+    background-color: #4d1f24;
+    border-color: #6d2f34;
+    color: #ff9999;
+  }
+
+  .aal2-expiration-banner {
+    background-color: #3d2f00;
+    border-color: #5d4f00;
+    color: #ffd966;
+  }
+
+  .aal2-expiration-banner button {
+    background-color: #333;
+    color: #ffd966;
+  }
+
+  .aal2-expiration-banner button:hover {
+    background-color: #444;
+  }
+}
+
+/* Print styles - hide status display when printing */
+@media print {
+  .admin-aal2-status {
+    display: none !important;
+  }
+
+  .aal2-expiration-banner {
+    display: none !important;
+  }
+}
+
+/* Accessibility improvements */
+.admin-aal2-status:focus-within {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.aal2-refresh-link:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 1px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .admin-aal2-status {
+    border-width: 2px;
+  }
+
+  .aal2-admin-status-valid {
+    background-color: #00ff00;
+    color: #000;
+  }
+
+  .aal2-admin-status-warning {
+    background-color: #ffff00;
+    color: #000;
+  }
+
+  .aal2-admin-status-expired {
+    background-color: #ff0000;
+    color: #fff;
+  }
+}

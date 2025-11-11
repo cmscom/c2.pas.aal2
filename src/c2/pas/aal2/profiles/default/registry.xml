@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<registry>
+  <!-- AAL2 Admin Protection Settings (Feature 006) -->
+  <records interface="c2.pas.aal2.admin.interfaces.IAAL2AdminSettings"
+           prefix="c2.pas.aal2.admin">
+
+    <value key="protected_patterns" purge="false">
+      <element>*/@@overview-controlpanel</element>
+      <element>*/@@usergroup-userprefs</element>
+      <element>*/@@usergroup-groupprefs</element>
+      <element>*/@@member-registration</element>
+      <element>*/prefs_install_products_form</element>
+      <element>*/@@installer</element>
+      <element>*/@@security-controlpanel</element>
+    </value>
+
+    <value key="enabled">True</value>
+  </records>
+
+  <!-- AAL2 Control Panel Settings (Feature 006: US2) -->
+  <records interface="c2.pas.aal2.controlpanel.interfaces.IAAL2ControlPanel"
+           prefix="c2.pas.aal2">
+
+    <value key="admin_protection_enabled">True</value>
+
+    <value key="admin_protected_patterns" purge="false">
+      <element>*/@@overview-controlpanel</element>
+      <element>*/@@usergroup-userprefs</element>
+      <element>*/@@usergroup-groupprefs</element>
+      <element>*/@@security-controlpanel</element>
+      <element>*/@@aal2-settings</element>
+      <element>*/acl_users/manage*</element>
+      <element>*/manage_main</element>
+    </value>
+
+    <value key="aal2_session_lifetime">15</value>
+
+  </records>
+</registry>

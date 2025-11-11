@@ -1,0 +1,106 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="c2.pas.aal2">
+
+<body>
+  <metal:content-core fill-slot="content-core">
+    <metal:block define-macro="content-core">
+
+      <h1 class="documentFirstHeading" i18n:translate="">Additional Authentication Required</h1>
+
+      <div class="documentDescription" i18n:translate="">
+        You are accessing a protected administrative interface. For security reasons,
+        please re-authenticate with your passkey to continue.
+      </div>
+
+      <div class="portalMessage info">
+        <strong i18n:translate="">Protected Resource:</strong>
+        <br />
+        <code tal:content="options/original_url | string:Unknown">Original URL</code>
+      </div>
+
+      <div tal:condition="python: options.get('challenge_count', 1) > 1"
+           class="portalMessage warning">
+        <strong i18n:translate="">Attempt</strong>
+        <span tal:content="python: options.get('challenge_count', 1)">1</span>
+        <span i18n:translate="">of 3</span>
+      </div>
+
+      <div id="passkey-auth-prompt" class="portalMessage info" style="display: none;">
+        <strong i18n:translate="">Touch your security key or use your device's biometric sensor</strong>
+      </div>
+
+      <div id="passkey-error" class="portalMessage error" style="display: none;"></div>
+      <div id="passkey-success" class="portalMessage info" style="display: none;"></div>
+
+      <div class="formControls">
+        <button type="button"
+                id="authenticate-button"
+                class="btn btn-primary btn-lg"
+                i18n:translate="">
+          Authenticate with Passkey
+        </button>
+        <a tal:attributes="href python:context.portal_url()"
+           class="btn btn-secondary"
+           i18n:translate="">
+          Cancel
+        </a>
+      </div>
+
+      <div id="browser-support-warning" class="portalMessage warning" style="display: none;">
+        <strong i18n:translate="">WebAuthn Not Supported</strong>
+        <p i18n:translate="">
+          Your browser does not support WebAuthn (passkey authentication).
+          Please use a modern browser like Chrome, Firefox, Safari, or Edge.
+        </p>
+      </div>
+
+      <div class="discreet" style="margin-top: 2em;">
+        <p i18n:translate="">
+          <strong>Why is this required?</strong>
+          Administrative interfaces require AAL2 (Authentication Assurance Level 2) protection.
+          This means you must authenticate with your passkey within the last 15 minutes to access
+          sensitive administrative functions.
+        </p>
+        <p i18n:translate="">
+          This additional security layer protects against unauthorized access even if your
+          session is compromised.
+        </p>
+      </div>
+
+    </metal:block>
+  </metal:content-core>
+
+  <metal:javascript fill-slot="javascript_head_slot">
+    <!-- Load WebAuthn JavaScript modules -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/webauthn-utils.js"></script>
+
+    <!-- Admin AAL2 Challenge JavaScript (will be created in T032) -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/admin-aal2-challenge.js"></script>
+
+    <!-- Initialize admin challenge with context -->
+    <script type="text/javascript"
+            tal:define="challenge_json python:modules['json'].dumps(options.get('challenge_options', {}))">
+      document.addEventListener('DOMContentLoaded', function() {
+        // Challenge options passed from view
+        var challengeOptions = <tal:block tal:replace="structure challenge_json" />;
+
+        if (typeof initAdminAAL2Challenge !== 'undefined') {
+          initAdminAAL2Challenge(challengeOptions);
+        } else {
+          console.error('Admin AAL2 challenge JavaScript not loaded');
+          var errorDiv = document.getElementById('passkey-error');
+          if (errorDiv) {
+            errorDiv.textContent = 'Failed to load authentication module';
+            errorDiv.style.display = 'block';
+          }
+        }
+      });
+    </script>
+  </metal:javascript>
+
+</body>
+</html>

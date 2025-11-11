@@ -1,0 +1,180 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="c2.pas.aal2">
+
+<body>
+  <metal:content-core fill-slot="content-core">
+    <metal:block define-macro="content-core">
+
+      <h1 class="documentFirstHeading" i18n:translate="">AAL2 Admin Protection Settings</h1>
+
+      <div class="documentDescription" i18n:translate="">
+        Configure which administrative interfaces require recent passkey authentication.
+        Protected URLs will require AAL2 re-authentication within the configured time window.
+      </div>
+
+      <!-- Information Box -->
+      <div class="portalMessage info" style="margin: 1em 0;">
+        <strong i18n:translate="">About AAL2 Admin Protection:</strong>
+        <ul>
+          <li i18n:translate="">
+            AAL2 (Authentication Assurance Level 2) requires users to authenticate with their
+            passkey within a recent time window before accessing sensitive administrative functions.
+          </li>
+          <li i18n:translate="">
+            This provides an additional security layer beyond basic login, protecting against
+            session hijacking and unauthorized access.
+          </li>
+          <li i18n:translate="">
+            URL patterns use glob-style wildcards: * matches any characters, ? matches one character.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Main Form -->
+      <div tal:replace="structure view/contents" />
+
+      <!-- Pattern Examples and Help -->
+      <div class="portalMessage" style="margin: 1em 0; background-color: #f0f0f0; border-color: #999;">
+        <strong i18n:translate="">Pattern Examples:</strong>
+        <table class="listing" style="margin-top: 0.5em;">
+          <thead>
+            <tr>
+              <th i18n:translate="">Pattern</th>
+              <th i18n:translate="">Matches</th>
+              <th i18n:translate="">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>*/@@overview-controlpanel</code></td>
+              <td>http://site.com/Plone/@@overview-controlpanel</td>
+              <td i18n:translate="">Main control panel</td>
+            </tr>
+            <tr>
+              <td><code>*/@@usergroup-*</code></td>
+              <td>http://site.com/@@usergroup-userprefs<br/>
+                  http://site.com/@@usergroup-groupprefs</td>
+              <td i18n:translate="">All user/group management pages</td>
+            </tr>
+            <tr>
+              <td><code>*/manage*</code></td>
+              <td>http://site.com/manage_main<br/>
+                  http://site.com/acl_users/manage_users</td>
+              <td i18n:translate="">ZMI (Zope Management Interface) pages</td>
+            </tr>
+            <tr>
+              <td><code>*/folder/@@edit</code></td>
+              <td>http://site.com/my-folder/@@edit</td>
+              <td i18n:translate="">Edit view for any folder</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pattern Testing Section -->
+      <div id="pattern-test-section" class="field" style="margin: 2em 0; padding: 1em; background-color: #f9f9f9; border: 1px solid #ddd;">
+        <h2 i18n:translate="">Test URL Pattern Matching</h2>
+        <p class="discreet" i18n:translate="">
+          Enter a URL below to test if it matches any of your configured patterns.
+          This helps verify your pattern configuration before saving.
+        </p>
+
+        <div class="field">
+          <label for="pattern-test-url" i18n:translate="">Test URL:</label>
+          <input type="text"
+                 id="pattern-test-url"
+                 class="form-control"
+                 placeholder="http://example.com/@@overview-controlpanel"
+                 style="width: 100%; max-width: 600px;"
+                 i18n:attributes="placeholder" />
+        </div>
+
+        <div class="formControls" style="margin-top: 0.5em;">
+          <button type="button"
+                  id="test-pattern-button"
+                  class="btn btn-secondary"
+                  i18n:translate="">
+            Test Pattern
+          </button>
+        </div>
+
+        <div id="pattern-test-result" style="display: none; margin-top: 1em;">
+          <!-- Results will be inserted here by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Current Configuration Summary -->
+      <div class="portalMessage info" style="margin: 1em 0;">
+        <strong i18n:translate="">Current Configuration:</strong>
+        <ul>
+          <li>
+            <strong i18n:translate="">Protection Status:</strong>
+            <span tal:define="enabled python:view.form_instance.get_pattern_stats().get('protection_enabled', False)"
+                  tal:content="python: 'Enabled' if enabled else 'Disabled'"
+                  tal:attributes="style python: 'color: green; font-weight: bold;' if enabled else 'color: red; font-weight: bold;'">
+              Status
+            </span>
+          </li>
+          <li>
+            <strong i18n:translate="">Protected Patterns:</strong>
+            <span tal:content="python:view.form_instance.get_pattern_stats().get('pattern_count', 0)">0</span>
+            <span i18n:translate="">patterns configured</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Best Practices -->
+      <div class="discreet" style="margin: 2em 0;">
+        <h3 i18n:translate="">Best Practices:</h3>
+        <ul>
+          <li i18n:translate="">
+            <strong>Start with defaults:</strong> The default patterns protect critical admin interfaces.
+            Add custom patterns as needed for your site.
+          </li>
+          <li i18n:translate="">
+            <strong>Test thoroughly:</strong> Use the pattern tester above to verify your patterns
+            match the intended URLs.
+          </li>
+          <li i18n:translate="">
+            <strong>Avoid overly broad patterns:</strong> Patterns like "*" or "**" would protect
+            every page, making the site difficult to use.
+          </li>
+          <li i18n:translate="">
+            <strong>Balance security and usability:</strong> The default 15-minute AAL2 window
+            provides good security without excessive re-authentication prompts.
+          </li>
+          <li i18n:translate="">
+            <strong>Monitor audit logs:</strong> Check the AAL2 audit logs to see which admin
+            actions trigger re-authentication and adjust patterns if needed.
+          </li>
+        </ul>
+      </div>
+
+    </metal:block>
+  </metal:content-core>
+
+  <metal:javascript fill-slot="javascript_head_slot">
+    <!-- Pattern testing JavaScript -->
+    <script tal:attributes="src string:${context/portal_url}/++resource++c2.pas.aal2/js/admin-pattern-tester.js"></script>
+
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize pattern tester if available
+        if (typeof initPatternTester !== 'undefined') {
+          initPatternTester({
+            testButtonId: 'test-pattern-button',
+            testInputId: 'pattern-test-url',
+            resultDivId: 'pattern-test-result',
+            patternsFieldId: 'form-widgets-admin_protected_patterns'
+          });
+        }
+      });
+    </script>
+  </metal:javascript>
+
+</body>
+</html>

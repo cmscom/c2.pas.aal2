@@ -979,3 +979,225 @@ class AAL2SettingsView(BrowserView):
             )
 
         return self.request.response.redirect(self.request.URL)
+
+
+class AdminAAL2ChallengeView(BrowserView):
+    """Admin-specific AAL2 challenge page.
+
+    This view is displayed when a user tries to access a protected admin
+    interface but their AAL2 session has expired. It prompts for passkey
+    re-authentication and redirects back to the original URL on success.
+
+    Flow:
+    1. User tries to access protected admin URL
+    2. Admin subscriber detects expired AAL2
+    3. Original URL stored in session
+    4. User redirected to @@admin-aal2-challenge
+    5. This view displays challenge with passkey prompt
+    6. User authenticates with passkey
+    7. AAL2 timestamp updated
+    8. User redirected back to original URL
+
+    Security:
+    - Same-origin validation for redirect URLs
+    - Maximum 3 challenge attempts to prevent loops
+    - 5-minute timeout for redirect context
+    - Multi-tab scenario handling (check if already authenticated)
+    """
+
+    def __call__(self):
+        """Render challenge page or handle authentication POST.
+
+        Returns:
+            str: Rendered template HTML (GET) or JSON response (POST)
+        """
+        # Check if user is logged in
+        user = api.user.get_current()
+        if not user or user.getId() is None:
+            # Anonymous user - redirect to login
+            logger.debug("Anonymous user accessing admin challenge - redirecting to login")
+            portal_url = api.portal.get().absolute_url()
+            return self.request.response.redirect(f'{portal_url}/login')
+
+        # Handle POST (authentication response)
+        if self.request.method == 'POST':
+            return self.handle_authentication()
+
+        # GET - display challenge page
+        try:
+            # Get redirect context from session
+            from c2.pas.aal2.admin.protection import get_redirect_context
+            redirect_context = get_redirect_context(self.request)
+
+            if not redirect_context:
+                # No redirect context - maybe expired or direct access
+                logger.warning(f"No redirect context for user {user.getId()}")
+                api.portal.show_message(
+                    message="Your session has expired. Please try again.",
+                    request=self.request,
+                    type='warning'
+                )
+                portal_url = api.portal.get().absolute_url()
+                return self.request.response.redirect(portal_url)
+
+            # Check if AAL2 is now valid (multi-tab scenario)
+            from c2.pas.aal2.session import is_aal2_valid
+            if is_aal2_valid(user):
+                logger.info(f"User {user.getId()} already has valid AAL2 - redirecting to original URL")
+                from c2.pas.aal2.admin.protection import clear_redirect_context
+                clear_redirect_context(self.request)
+                return self.request.response.redirect(redirect_context['original_url'])
+
+            # Prepare challenge options
+            from c2.pas.aal2.utils.webauthn_utils import get_authentication_options
+            challenge_options = get_authentication_options(user)
+
+            if not challenge_options:
+                # No credentials registered - shouldn't happen for admin users
+                logger.error(f"User {user.getId()} has no passkey credentials")
+                api.portal.show_message(
+                    message="No passkey credentials found. Please register a passkey first.",
+                    request=self.request,
+                    type='error'
+                )
+                portal_url = api.portal.get().absolute_url()
+                return self.request.response.redirect(f'{portal_url}/@@aal2-passkey-register')
+
+            # Render template with context
+            return self.index(
+                user_id=user.getId(),
+                original_url=redirect_context['original_url'],
+                challenge_options=challenge_options,
+                challenge_count=redirect_context.get('challenge_count', 1),
+            )
+
+        except Exception as e:
+            logger.exception(f"Error displaying admin challenge: {e}")
+            api.portal.show_message(
+                message="An error occurred. Please try again.",
+                request=self.request,
+                type='error'
+            )
+            portal_url = api.portal.get().absolute_url()
+            return self.request.response.redirect(portal_url)
+
+    def handle_authentication(self):
+        """Handle passkey authentication POST request.
+
+        Expected POST body (JSON):
+        {
+            "credential": {
+                "id": "credential_id",
+                "rawId": "base64_raw_id",
+                "response": {
+                    "authenticatorData": "base64_data",
+                    "clientDataJSON": "base64_json",
+                    "signature": "base64_signature",
+                    "userHandle": "base64_handle"
+                },
+                "type": "public-key"
+            }
+        }
+
+        Returns:
+            JSON response:
+            - Success: {"status": "success", "redirect_url": "..."}
+            - Failure: {"status": "error", "message": "..."}
+        """
+        import json
+
+        self.request.response.setHeader('Content-Type', 'application/json')
+
+        try:
+            user = api.user.get_current()
+            if not user or user.getId() is None:
+                return json.dumps({
+                    'status': 'error',
+                    'message': 'Not authenticated'
+                })
+
+            # Parse request body
+            body = self.request.get('BODY', '{}')
+            if isinstance(body, bytes):
+                body = body.decode('utf-8')
+            data = json.loads(body)
+            credential = data.get('credential')
+
+            if not credential:
+                logger.warning(f"Missing credential in authentication request from {user.getId()}")
+                return json.dumps({
+                    'status': 'error',
+                    'message': 'Missing credential'
+                })
+
+            # Verify passkey authentication
+            from c2.pas.aal2.utils.webauthn_utils import verify_authentication
+            verification_result = verify_authentication(user, credential)
+
+            if not verification_result or not verification_result.get('verified'):
+                # Authentication failed
+                logger.warning(f"Admin passkey authentication failed for {user.getId()}")
+
+                # Log audit event
+                from c2.pas.aal2.utils.audit import log_audit_event
+                log_audit_event(
+                    event_type='admin_challenge_failure',
+                    user_id=user.getId(),
+                    details={
+                        'reason': verification_result.get('error', 'Unknown error') if verification_result else 'Verification failed',
+                        'credential_id': credential.get('id', 'unknown')[:20],
+                    }
+                )
+
+                return json.dumps({
+                    'status': 'error',
+                    'message': 'Authentication failed. Please try again.'
+                })
+
+            # Authentication successful - update AAL2 timestamp
+            logger.info(f"Admin passkey authentication successful for {user.getId()}")
+
+            from c2.pas.aal2.session import set_aal2_timestamp
+            set_aal2_timestamp(user)
+
+            # Get redirect context
+            from c2.pas.aal2.admin.protection import get_redirect_context, clear_redirect_context
+            redirect_context = get_redirect_context(self.request)
+
+            if redirect_context:
+                redirect_url = redirect_context['original_url']
+                # Clear redirect context
+                clear_redirect_context(self.request)
+            else:
+                # No redirect context - go to portal root
+                logger.warning(f"No redirect context after successful authentication for {user.getId()}")
+                redirect_url = api.portal.get().absolute_url()
+
+            # Log audit event
+            from c2.pas.aal2.utils.audit import log_audit_event
+            log_audit_event(
+                event_type='admin_challenge_success',
+                user_id=user.getId(),
+                details={
+                    'redirect_url': redirect_url,
+                    'credential_id': credential.get('id', 'unknown')[:20],
+                }
+            )
+
+            return json.dumps({
+                'status': 'success',
+                'redirect_url': redirect_url
+            })
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in authentication request: {e}")
+            return json.dumps({
+                'status': 'error',
+                'message': 'Invalid request format'
+            })
+        except Exception as e:
+            logger.exception(f"Error handling admin authentication: {e}")
+            return json.dumps({
+                'status': 'error',
+                'message': 'An error occurred during authentication'
+            })

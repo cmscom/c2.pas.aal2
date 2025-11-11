@@ -105,6 +105,16 @@
       layer="*"
       />
 
+  <!-- Admin AAL2 Status Viewlet (Feature 006: US4) -->
+  <browser:viewlet
+      name="c2.pas.aal2.admin-status"
+      manager="plone.app.layout.viewlets.interfaces.IPortalHeader"
+      class=".viewlets.AdminAAL2StatusViewlet"
+      template="templates/admin_aal2_status.pt"
+      permission="zope2.View"
+      layer="*"
+      />
+
   <!-- Enhanced Login View (US4) -->
   <browser:page
       name="passkey-enhanced-login"
@@ -120,6 +130,15 @@
       for="*"
       class=".views.AAL2ChallengeView"
       template="aal2_challenge.pt"
+      permission="zope2.View"
+      />
+
+  <!-- Admin AAL2 Challenge View (Feature 006: US3) -->
+  <browser:page
+      name="admin-aal2-challenge"
+      for="*"
+      class=".views.AdminAAL2ChallengeView"
+      template="templates/admin_aal2_challenge.pt"
       permission="zope2.View"
       />
 
