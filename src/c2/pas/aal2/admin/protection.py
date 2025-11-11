@@ -198,6 +198,11 @@ def store_redirect_context(request, original_url):
 
         session = request.SESSION
 
+        # Session might be None if not initialized yet
+        if session is None:
+            logger.debug("Session not initialized, cannot store redirect context")
+            return
+
         # Get existing context or create new
         existing = session.get(REDIRECT_SESSION_KEY)
         challenge_count = 1
@@ -245,6 +250,11 @@ def get_redirect_context(request):
     """
     try:
         session = request.SESSION
+
+        # Session might be None if not initialized yet
+        if session is None:
+            return None
+
         context = session.get(REDIRECT_SESSION_KEY)
 
         if not context or not isinstance(context, dict):
@@ -285,6 +295,11 @@ def clear_redirect_context(request):
     """
     try:
         session = request.SESSION
+
+        # Session might be None if not initialized yet
+        if session is None:
+            return
+
         if REDIRECT_SESSION_KEY in session:
             del session[REDIRECT_SESSION_KEY]
             logger.debug("Cleared redirect context")
